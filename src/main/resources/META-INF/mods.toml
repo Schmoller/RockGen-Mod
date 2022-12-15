@@ -1,0 +1,24 @@
+modLoader="javafml"
+loaderVersion="[40,)"
+license="All rights reserved"
+[[mods]]
+modId="rockgen"
+version="${file.jarVersion}"
+displayName="Rock Generator"
+credits="Thanks for this example mod goes to Java"
+authors="Schmoller"
+
+description='Customises block generation such as cobble and basalt generation'
+
+[[dependencies.rockgen]]
+    modId="forge"
+    mandatory=true
+    versionRange="[40,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.rockgen]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.18.2,1.19)"
+    ordering="NONE"
+    side="BOTH"
