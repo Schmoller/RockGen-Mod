@@ -1,0 +1,9 @@
+{
+  "type": "rockgen:fluid_spread",
+  "fluid": "minecraft:lava",
+  "into": {
+    "block": "minecraft:blue_ice"
+  },
+  "above_block": "minecraft:soul_soil",
+  "result": "minecraft:basalt"
+}

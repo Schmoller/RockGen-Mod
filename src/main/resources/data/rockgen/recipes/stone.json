@@ -1,0 +1,9 @@
+{
+  "type": "rockgen:fluid_fall",
+  "fluid": "minecraft:lava",
+  "into": {
+    "fluid": "minecraft:water",
+    "type": "dont-care"
+  },
+  "result": "minecraft:stone"
+}
