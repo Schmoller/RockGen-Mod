@@ -7,8 +7,11 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraftforge.client.event.RecipesUpdatedEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.util.RecipeMatcher;
 import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.InterModComms;
 import net.minecraftforge.fml.common.Mod;
@@ -20,6 +23,7 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
 import schmoller.mods.rockgen.recipes.FluidFallRecipe;
 import schmoller.mods.rockgen.recipes.FluidSpreadRecipe;
+import schmoller.mods.rockgen.recipes.FluidSpreadRecipeCache;
 
 import java.util.stream.Collectors;
 
@@ -29,6 +33,8 @@ public class ExampleMod
 {
     // Directly reference a slf4j logger
     private static final Logger LOGGER = LogUtils.getLogger();
+
+    public static final FluidSpreadRecipeCache FluidSpreadRecipeCache = new FluidSpreadRecipeCache();
 
     public ExampleMod()
     {
@@ -71,5 +77,11 @@ public class ExampleMod
 
         Registry.register(Registry.RECIPE_TYPE, new ResourceLocation(FluidFallRecipe.TypeId), FluidFallRecipe.Type);
         event.getRegistry().register(FluidFallRecipe.SerializerInstance);
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onRecipesUpdated(RecipesUpdatedEvent event) {
+        var spreadRecipes = event.getRecipeManager().getAllRecipesFor(FluidSpreadRecipe.Type);
+        FluidSpreadRecipeCache.prepare(spreadRecipes);
     }
 }

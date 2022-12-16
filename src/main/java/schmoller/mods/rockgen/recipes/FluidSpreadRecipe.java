@@ -1,9 +1,13 @@
 package schmoller.mods.rockgen.recipes;
 
 import com.google.gson.JsonObject;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -13,12 +17,15 @@ import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.common.util.Lazy;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.ForgeRegistryEntry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
 import java.util.Optional;
 
 public class FluidSpreadRecipe implements Recipe<Container> {
@@ -34,15 +41,15 @@ public class FluidSpreadRecipe implements Recipe<Container> {
     public static final Serializer SerializerInstance = new Serializer();
 
     private final ResourceLocation id;
-    private final Fluid fluid;
+    private final TagKey<Fluid> fluid;
     private final Block outputBlock;
     private final Optional<Block> requireBelow;
-    private final Optional<Fluid> intoFluid;
+    private final Optional<TagKey<Fluid>> intoFluid;
     private final FluidSourceState fluidState;
     private final Optional<Block> intoBlock;
 
-    private FluidSpreadRecipe(ResourceLocation id, Fluid fluid, Block outputBlock, Optional<Block> requireBelow,
-                              Optional<Fluid> intoFluid, FluidSourceState fluidState, Optional<Block> intoBlock) {
+    private FluidSpreadRecipe(ResourceLocation id, TagKey<Fluid> fluid, Block outputBlock, Optional<Block> requireBelow,
+                              Optional<TagKey<Fluid>> intoFluid, FluidSourceState fluidState, Optional<Block> intoBlock) {
         this.id = id;
         this.fluid = fluid;
         this.outputBlock = outputBlock;
@@ -52,8 +59,59 @@ public class FluidSpreadRecipe implements Recipe<Container> {
         this.intoBlock = intoBlock;
     }
 
+    public TagKey<Fluid> fluidToMatch() {
+        return fluid;
+    }
+
     @Override
     public boolean matches(Container inventory, Level world) {
+        return false;
+    }
+
+    public Optional<Block> tryMatch(Level level, BlockPos position) {
+        if (requireBelow.isPresent()) {
+            var blockBelow = level.getBlockState(position.below());
+            if (!blockBelow.is(requireBelow.get())) {
+                return Optional.empty();
+            }
+        }
+
+        boolean isSourceBlock = false;
+        if (intoFluid.isPresent()) {
+            // only look this once since it's location is already determined
+            isSourceBlock = level.getFluidState(position).isSource();
+        }
+
+        for (Direction direction : LiquidBlock.POSSIBLE_FLOW_DIRECTIONS) {
+            BlockPos adjacent = position.relative(direction.getOpposite());
+
+            if (doesPositionMatchRequirements(level, adjacent, isSourceBlock)) {
+                return Optional.of(outputBlock);
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private boolean doesPositionMatchRequirements(Level level, BlockPos position, boolean isSourceBlock) {
+        if (intoFluid.isPresent()) {
+            if (!level.getFluidState(position).is(intoFluid.get())) {
+                return false;
+            }
+
+            if (fluidState != FluidSourceState.DontCare) {
+                if (fluidState == FluidSourceState.RequireSource && !isSourceBlock) {
+                    return false;
+                }
+                if (fluidState == FluidSourceState.RequireFlowing && isSourceBlock) {
+                    return false;
+                }
+            }
+            return true;
+        } else if (intoBlock.isPresent()) {
+            return level.getBlockState(position).is(intoBlock.get());
+        }
+
         return false;
     }
 
@@ -134,10 +192,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
             }
 
             var inputFluidId = new ResourceLocation(inputFluidProperty.getAsString());
-            var inputFluid = ForgeRegistries.FLUIDS.getValue(inputFluidId);
-            if (inputFluid == null) {
-                throw new IllegalStateException("Unknown fluid " + inputFluidId);
-            }
+            var inputFluid = FluidTags.create(inputFluidId);
 
             // Output block
             if (outputBlockProperty == null || !outputBlockProperty.isString()) {
@@ -172,7 +227,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
                 throw new IllegalArgumentException("'into' property is not an object");
             }
 
-            Optional<Fluid> intoFluid = Optional.empty();
+            Optional<TagKey<Fluid>> intoFluid = Optional.empty();
             Optional<Block> intoBlock = Optional.empty();
 
             FluidSourceState intoFluidState = FluidSourceState.DontCare;
@@ -186,10 +241,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
                 }
 
                 var intoFluidId = new ResourceLocation(intoFluidProperty.getAsString());
-                var fluid = ForgeRegistries.FLUIDS.getValue(intoFluidId);
-                if (fluid == null) {
-                    throw new IllegalStateException("Unknown fluid " + intoFluidId);
-                }
+                var fluid = FluidTags.create(intoFluidId);
                 intoFluid = Optional.of(fluid);
 
                 var fluidTypeProperty = intoObject.getAsJsonPrimitive("type");
@@ -229,19 +281,16 @@ public class FluidSpreadRecipe implements Recipe<Container> {
         @Nullable
         @Override
         public FluidSpreadRecipe fromNetwork(@NotNull ResourceLocation id, FriendlyByteBuf input) {
-            Fluid inputFluid;
+            TagKey<Fluid> inputFluid;
             Block outputBlock;
-            Optional<Fluid> intoFluid = Optional.empty();
+            Optional<TagKey<Fluid>> intoFluid = Optional.empty();
             Optional<Block> intoBlock = Optional.empty();
             Optional<Block> aboveBlock = Optional.empty();
 
             FluidSourceState intoFluidState = FluidSourceState.DontCare;
 
             var inputFluidId = input.readResourceLocation();
-            inputFluid = ForgeRegistries.FLUIDS.getValue(inputFluidId);
-            if (inputFluid == null) {
-                throw new IllegalStateException("Unknown fluid " + inputFluidId);
-            }
+            inputFluid = FluidTags.create(inputFluidId);
 
             var outputBlockId = input.readResourceLocation();
             outputBlock = ForgeRegistries.BLOCKS.getValue(outputBlockId);
@@ -262,10 +311,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
             var usesIntoFluid = input.readBoolean();
             if (usesIntoFluid) {
                 var fluidId = input.readResourceLocation();
-                var fluid = ForgeRegistries.FLUIDS.getValue(fluidId);
-                if (fluid == null) {
-                    throw new IllegalStateException("Unknown fluid " + fluidId);
-                }
+                var fluid = FluidTags.create(fluidId);
                 intoFluid = Optional.of(fluid);
 
                 intoFluidState = input.readEnum(FluidSourceState.class);
@@ -284,7 +330,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
         @Override
         public void toNetwork(FriendlyByteBuf output, FluidSpreadRecipe recipe) {
             // NOTE: These cannot be null
-            output.writeResourceLocation(recipe.fluid.getRegistryName());
+            output.writeResourceLocation(recipe.fluid.location());
             output.writeResourceLocation(recipe.outputBlock.getRegistryName());
 
             output.writeBoolean(recipe.requireBelow.isPresent());
@@ -294,7 +340,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
 
             output.writeBoolean(recipe.intoFluid.isPresent());
             if (recipe.intoFluid.isPresent()) {
-                output.writeResourceLocation(recipe.intoFluid.get().getRegistryName());
+                output.writeResourceLocation(recipe.intoFluid.get().location());
                 output.writeEnum(recipe.fluidState);
             } else {
                 assert (recipe.intoBlock.isPresent());
