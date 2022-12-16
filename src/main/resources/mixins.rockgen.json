@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "schmoller.mods.rockgen.mixins",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "LiquidBlockMixin"
+  ],
+  "client": [
+  ],
+  "injectors": {
+  },
+  "minVersion": "0.8",
+  "refmap": "rockgen.refmap.json"
+}
