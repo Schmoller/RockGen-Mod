@@ -1,6 +1,9 @@
 package schmoller.mods.rockgen.recipes;
 
+import com.google.common.collect.Lists;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -25,13 +28,20 @@ import net.minecraftforge.registries.ForgeRegistryEntry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class FluidSpreadRecipe implements Recipe<Container> {
     private enum FluidSourceState {
         RequireSource,
         RequireFlowing,
         DontCare
+    }
+
+    private record ResultBlock(Block block, int weight) {
     }
 
     public static final Lazy<ItemStack> LazyLava = Lazy.of(() -> new ItemStack(Items.LAVA_BUCKET));
@@ -41,21 +51,30 @@ public class FluidSpreadRecipe implements Recipe<Container> {
 
     private final ResourceLocation id;
     private final TagKey<Fluid> fluid;
-    private final Block outputBlock;
+    private final List<ResultBlock> outputs;
+    private final int maxOutputWeight;
     private final Optional<Block> requireBelow;
     private final Optional<TagKey<Fluid>> intoFluid;
     private final FluidSourceState fluidState;
     private final Optional<Block> intoBlock;
 
-    private FluidSpreadRecipe(ResourceLocation id, TagKey<Fluid> fluid, Block outputBlock, Optional<Block> requireBelow,
+    private final Random random = new Random();
+
+    private FluidSpreadRecipe(ResourceLocation id, TagKey<Fluid> fluid, List<ResultBlock> outputs, Optional<Block> requireBelow,
                               Optional<TagKey<Fluid>> intoFluid, FluidSourceState fluidState, Optional<Block> intoBlock) {
         this.id = id;
         this.fluid = fluid;
-        this.outputBlock = outputBlock;
+        this.outputs = outputs;
         this.requireBelow = requireBelow;
         this.intoFluid = intoFluid;
         this.fluidState = fluidState;
         this.intoBlock = intoBlock;
+
+        int outputWeight = 0;
+        for (var output : outputs) {
+            outputWeight += output.weight;
+        }
+        maxOutputWeight = outputWeight;
     }
 
     public TagKey<Fluid> fluidToMatch() {
@@ -85,6 +104,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
             BlockPos adjacent = position.relative(direction.getOpposite());
 
             if (doesPositionMatchRequirements(level, adjacent, isSourceBlock)) {
+                var outputBlock = chooseOutputBlock();
                 return Optional.of(outputBlock);
             }
         }
@@ -112,6 +132,24 @@ public class FluidSpreadRecipe implements Recipe<Container> {
         return false;
     }
 
+    private Block chooseOutputBlock() {
+        if (outputs.size() == 1) {
+            return outputs.get(0).block;
+        }
+
+        var offset = random.nextInt(maxOutputWeight);
+        var accumulated = 0;
+        for (var output : outputs) {
+            accumulated += output.weight;
+            if (offset < accumulated) {
+                return output.block;
+            }
+        }
+
+        // we should have received a result here
+        return outputs.get(0).block;
+    }
+
     @Override
     public @NotNull ItemStack assemble(@NotNull Container inventory) {
         throw new IllegalStateException("Recipe cannot be used with inventories");
@@ -124,7 +162,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
 
     @Override
     public @NotNull ItemStack getResultItem() {
-        return new ItemStack(outputBlock.asItem());
+        return new ItemStack(outputs.get(0).block.asItem());
     }
 
     @Override
@@ -163,7 +201,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
         return "FluidSpreadRecipe{" +
                 "id=" + id +
                 ", fluid=" + fluid +
-                ", outputBlock=" + outputBlock +
+                ", outputs=" + outputs +
                 ", requireBelow=" + requireBelow +
                 ", intoFluid=" + intoFluid +
                 ", fluidState=" + fluidState +
@@ -179,7 +217,6 @@ public class FluidSpreadRecipe implements Recipe<Container> {
         @Override
         public @NotNull FluidSpreadRecipe fromJson(@NotNull ResourceLocation id, JsonObject document) {
             var inputFluidProperty = document.getAsJsonPrimitive("fluid");
-            var outputBlockProperty = document.getAsJsonPrimitive("result");
             var aboveBlockProperty = document.getAsJsonPrimitive("above_block");
             var intoObject = document.getAsJsonObject("into");
 
@@ -191,16 +228,9 @@ public class FluidSpreadRecipe implements Recipe<Container> {
             var inputFluidId = new ResourceLocation(inputFluidProperty.getAsString());
             var inputFluid = FluidTags.create(inputFluidId);
 
-            // Output block
-            if (outputBlockProperty == null || !outputBlockProperty.isString()) {
-                throw new IllegalArgumentException("'result' property is not a string");
-            }
-
-            var outputBlockId = new ResourceLocation(outputBlockProperty.getAsString());
-            var outputBlock = ForgeRegistries.BLOCKS.getValue(outputBlockId);
-            if (outputBlock == null || outputBlock == Blocks.AIR) {
-                throw new IllegalStateException("Unknown block " + outputBlockId);
-            }
+            // Output
+            var resultProperty = document.get("result");
+            var outputs = decodeResults(resultProperty);
 
             // Above block
             Optional<Block> aboveBlock = Optional.empty();
@@ -272,7 +302,76 @@ public class FluidSpreadRecipe implements Recipe<Container> {
                 throw new IllegalStateException("Missing 'into.fluid' or 'into.block'");
             }
 
-            return new FluidSpreadRecipe(id, inputFluid, outputBlock, aboveBlock, intoFluid, intoFluidState, intoBlock);
+            return new FluidSpreadRecipe(id, inputFluid, outputs, aboveBlock, intoFluid, intoFluidState, intoBlock);
+        }
+
+        private List<ResultBlock> decodeResults(JsonElement element) {
+            if (element == null) {
+                throw new IllegalArgumentException("'result' property is not string or array");
+            }
+
+            if (element.isJsonPrimitive()) {
+                var outputBlock = decodeBlockFromPrimitive(element.getAsJsonPrimitive(), "result");
+                return List.of(new ResultBlock(outputBlock, 1));
+            }
+
+            if (element.isJsonArray()) {
+                var outputArrayProperty = element.getAsJsonArray();
+
+                return StreamSupport.stream(outputArrayProperty.spliterator(), false)
+                        .map(this::decodeResultBlockFromJsonElement)
+                        .collect(Collectors.toList());
+            }
+
+            throw new IllegalArgumentException("'result' property is not a string or array");
+        }
+
+        private ResultBlock decodeResultBlockFromJsonElement(JsonElement element) {
+            if (element.isJsonObject()) {
+                return decodeResultBlockFromJsonObject(element.getAsJsonObject());
+            }
+
+            if (element.isJsonPrimitive()) {
+                var outputBlock = decodeBlockFromPrimitive(element.getAsJsonPrimitive(), "result");
+                return new ResultBlock(outputBlock, 1);
+            }
+
+            throw new IllegalArgumentException("Invalid result entry");
+        }
+
+        private ResultBlock decodeResultBlockFromJsonObject(JsonObject object) {
+            var blockProperty = object.getAsJsonPrimitive("block");
+            var outputBlock = decodeBlockFromPrimitive(blockProperty, "result.block");
+
+            var weightProperty = object.getAsJsonPrimitive("weight");
+            var weight = 1;
+            if (weightProperty != null) {
+                if (!weightProperty.isNumber()) {
+                    throw new IllegalArgumentException("'result.weight' property is not a number");
+                }
+
+                weight = weightProperty.getAsInt();
+
+                if (weight <= 0) {
+                    throw new IllegalArgumentException("'result.weight' property must be at least 1");
+                }
+            }
+
+            return new ResultBlock(outputBlock, weight);
+        }
+
+        private Block decodeBlockFromPrimitive(JsonPrimitive primitive, String path) {
+            if (primitive == null || !primitive.isString()) {
+                throw new IllegalArgumentException("'" + path + "' property is not a string");
+            }
+
+            var blockId = new ResourceLocation(primitive.getAsString());
+            var block = ForgeRegistries.BLOCKS.getValue(blockId);
+            if (block == null || block == Blocks.AIR) {
+                throw new IllegalStateException("Unknown block " + blockId);
+            }
+
+            return block;
         }
 
         @Nullable
@@ -289,10 +388,18 @@ public class FluidSpreadRecipe implements Recipe<Container> {
             var inputFluidId = input.readResourceLocation();
             inputFluid = FluidTags.create(inputFluidId);
 
-            var outputBlockId = input.readResourceLocation();
-            outputBlock = ForgeRegistries.BLOCKS.getValue(outputBlockId);
-            if (outputBlock == null) {
-                throw new IllegalStateException("Unknown block " + outputBlockId);
+            var outputCount = input.readUnsignedShort();
+            List<ResultBlock> outputs = Lists.newArrayListWithExpectedSize(outputCount);
+
+            for (var index = 0; index < outputCount; ++index) {
+                var blockId = input.readResourceLocation();
+                var block = ForgeRegistries.BLOCKS.getValue(blockId);
+                if (block == null) {
+                    throw new IllegalStateException("Unknown block " + blockId);
+                }
+
+                var weight = input.readInt();
+                outputs.add(new ResultBlock(block, weight));
             }
 
             var hasAboveBlock = input.readBoolean();
@@ -321,14 +428,19 @@ public class FluidSpreadRecipe implements Recipe<Container> {
                 intoBlock = Optional.of(block);
             }
 
-            return new FluidSpreadRecipe(id, inputFluid, outputBlock, aboveBlock, intoFluid, intoFluidState, intoBlock);
+            return new FluidSpreadRecipe(id, inputFluid, outputs, aboveBlock, intoFluid, intoFluidState, intoBlock);
         }
 
         @Override
         public void toNetwork(FriendlyByteBuf output, FluidSpreadRecipe recipe) {
             // NOTE: These cannot be null
             output.writeResourceLocation(recipe.fluid.location());
-            output.writeResourceLocation(recipe.outputBlock.getRegistryName());
+
+            output.writeShort(recipe.outputs.size());
+            for (var recipeOutput : recipe.outputs) {
+                output.writeResourceLocation(recipeOutput.block.getRegistryName());
+                output.writeInt(recipeOutput.weight);
+            }
 
             output.writeBoolean(recipe.requireBelow.isPresent());
             if (recipe.requireBelow.isPresent()) {
