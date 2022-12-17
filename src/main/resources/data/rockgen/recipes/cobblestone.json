@@ -1,9 +1,11 @@
 {
   "type": "rockgen:fluid_spread",
-  "fluid": "minecraft:lava",
+  "input": {
+    "fluid": "minecraft:lava",
+    "state": "flowing"
+  },
   "into": {
-    "fluid": "minecraft:water",
-    "type": "flowing"
+    "fluid": "minecraft:water"
   },
   "result": "minecraft:cobblestone"
 }
