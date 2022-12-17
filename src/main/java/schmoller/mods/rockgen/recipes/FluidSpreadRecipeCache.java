@@ -10,7 +10,8 @@ import java.util.Collection;
 import java.util.List;
 
 public class FluidSpreadRecipeCache {
-    private List<GroupedRecipes> groupedRecipes;
+    private List<GroupedRecipes> groupedRegularRecipes;
+    private List<GroupedRecipes> groupedFallingRecipes;
 
     public void prepare(Collection<FluidSpreadRecipe> recipes) {
         ListMultimap<TagKey<Fluid>, FluidSpreadRecipe> recipesByFluid = ArrayListMultimap.create();
@@ -19,14 +20,35 @@ public class FluidSpreadRecipeCache {
             recipesByFluid.put(recipe.fluidToMatch(), recipe);
         }
 
-        groupedRecipes = recipesByFluid.keys()
-            .stream()
-            .map(key -> new GroupedRecipes(key, recipesByFluid.get(key)))
-            .toList();
+        groupedRegularRecipes = recipesByFluid.keys().stream().distinct().map(key -> {
+            var recipesOfSameFluidType = recipesByFluid.get(key)
+                .stream()
+                .filter(recipe -> recipe.fluidSpreadDirection() == FluidSpreadRecipe.FluidSpreadDirection.Regular)
+                .toList();
+            return new GroupedRecipes(key, recipesOfSameFluidType);
+        }).filter(group -> !group.recipes.isEmpty()).toList();
+
+        groupedFallingRecipes = recipesByFluid.keys().stream().distinct().map(key -> {
+            var recipesOfSameFluidType = recipesByFluid.get(key)
+                .stream()
+                .filter(recipe -> recipe.fluidSpreadDirection() == FluidSpreadRecipe.FluidSpreadDirection.Down)
+                .toList();
+            return new GroupedRecipes(key, recipesOfSameFluidType);
+        }).filter(group -> !group.recipes.isEmpty()).toList();
     }
 
-    public Iterable<FluidSpreadRecipe> get(FlowingFluid flowingType) {
-        for (var group : groupedRecipes) {
+    public Iterable<FluidSpreadRecipe> getRegular(FlowingFluid flowingType) {
+        for (var group : groupedRegularRecipes) {
+            if (flowingType.is(group.fluid)) {
+                return group.recipes;
+            }
+        }
+
+        return List.of();
+    }
+
+    public Iterable<FluidSpreadRecipe> getFalling(FlowingFluid flowingType) {
+        for (var group : groupedFallingRecipes) {
             if (flowingType.is(group.fluid)) {
                 return group.recipes;
             }

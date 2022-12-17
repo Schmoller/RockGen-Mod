@@ -16,8 +16,6 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
-import schmoller.mods.rockgen.recipes.FluidFallRecipe;
-import schmoller.mods.rockgen.recipes.FluidFallRecipeCache;
 import schmoller.mods.rockgen.recipes.FluidSpreadRecipe;
 import schmoller.mods.rockgen.recipes.FluidSpreadRecipeCache;
 
@@ -25,7 +23,6 @@ import schmoller.mods.rockgen.recipes.FluidSpreadRecipeCache;
 @Mod("rockgen")
 public class RockGenerationMod {
     public static final FluidSpreadRecipeCache FluidSpreadRecipeCache = new FluidSpreadRecipeCache();
-    public static final FluidFallRecipeCache FluidFallRecipeCache = new FluidFallRecipeCache();
     // Directly reference a slf4j logger
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -46,9 +43,6 @@ public class RockGenerationMod {
     public void onRegisterRecipes(RegistryEvent.Register<RecipeSerializer<?>> event) {
         Registry.register(Registry.RECIPE_TYPE, new ResourceLocation(FluidSpreadRecipe.TypeId), FluidSpreadRecipe.Type);
         event.getRegistry().register(FluidSpreadRecipe.SerializerInstance);
-
-        Registry.register(Registry.RECIPE_TYPE, new ResourceLocation(FluidFallRecipe.TypeId), FluidFallRecipe.Type);
-        event.getRegistry().register(FluidFallRecipe.SerializerInstance);
     }
 
     // You can use SubscribeEvent and let the Event Bus discover methods to call
@@ -62,9 +56,6 @@ public class RockGenerationMod {
     public void onRecipesUpdated(RecipesUpdatedEvent event) {
         var spreadRecipes = event.getRecipeManager().getAllRecipesFor(FluidSpreadRecipe.Type);
         FluidSpreadRecipeCache.prepare(spreadRecipes);
-
-        var fallRecipes = event.getRecipeManager().getAllRecipesFor(FluidFallRecipe.Type);
-        FluidFallRecipeCache.prepare(fallRecipes);
     }
 
     // You can use EventBusSubscriber to automatically subscribe events on the contained class (this is subscribing to the MOD

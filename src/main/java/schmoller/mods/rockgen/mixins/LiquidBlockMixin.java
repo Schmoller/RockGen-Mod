@@ -20,7 +20,7 @@ public abstract class LiquidBlockMixin {
      */
     @Overwrite
     private boolean shouldSpreadLiquid(Level level, BlockPos flowingToPosition, BlockState p_54699_) {
-        for (var recipe : RockGenerationMod.FluidSpreadRecipeCache.get(this.getFluid())) {
+        for (var recipe : RockGenerationMod.FluidSpreadRecipeCache.getRegular(this.getFluid())) {
             var blockToSet = recipe.tryMatch(level, flowingToPosition);
             if (blockToSet.isPresent()) {
                 var block = blockToSet.get();

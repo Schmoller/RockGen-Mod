@@ -1,9 +1,12 @@
 {
-  "type": "rockgen:fluid_fall",
-  "fluid": "minecraft:lava",
-  "into": {
-    "fluid": "minecraft:water",
-    "type": "dont-care"
+  "type": "rockgen:fluid_spread",
+  "input": {
+    "fluid": "minecraft:lava",
+    "state": "any"
   },
+  "into": {
+    "fluid": "minecraft:water"
+  },
+  "flowing_down": true,
   "result": "minecraft:stone"
 }

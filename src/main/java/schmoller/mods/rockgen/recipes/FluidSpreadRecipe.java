@@ -20,6 +20,7 @@ import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
@@ -44,6 +45,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
     private final ResourceLocation id;
     private final TagKey<Fluid> fluid;
     private final FluidSourceState fluidState;
+    private final FluidSpreadDirection spreadDirection;
     private final List<ResultBlock> outputs;
     private final int maxOutputWeight;
     private final Optional<Block> requireBelow;
@@ -52,12 +54,14 @@ public class FluidSpreadRecipe implements Recipe<Container> {
     private final Random random = new Random();
 
     private FluidSpreadRecipe(
-        ResourceLocation id, TagKey<Fluid> fluid, List<ResultBlock> outputs, Optional<Block> requireBelow,
-        Optional<TagKey<Fluid>> intoFluid, FluidSourceState fluidState, Optional<Block> intoBlock
+        ResourceLocation id, TagKey<Fluid> fluid, FluidSpreadDirection spreadDirection, List<ResultBlock> outputs,
+        Optional<Block> requireBelow, Optional<TagKey<Fluid>> intoFluid, FluidSourceState fluidState,
+        Optional<Block> intoBlock
     ) {
         this.id = id;
         this.fluid = fluid;
         this.fluidState = fluidState;
+        this.spreadDirection = spreadDirection;
         this.outputs = outputs;
         this.requireBelow = requireBelow;
         this.intoFluid = intoFluid;
@@ -72,6 +76,10 @@ public class FluidSpreadRecipe implements Recipe<Container> {
 
     public TagKey<Fluid> fluidToMatch() {
         return fluid;
+    }
+
+    public FluidSpreadDirection fluidSpreadDirection() {
+        return spreadDirection;
     }
 
     @Override
@@ -124,7 +132,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
         return Type;
     }
 
-    public Optional<Block> tryMatch(Level level, BlockPos position) {
+    public Optional<Block> tryMatch(LevelAccessor level, BlockPos position) {
         if (requireBelow.isPresent()) {
             var blockBelow = level.getBlockState(position.below());
             if (!blockBelow.is(requireBelow.get())) {
@@ -143,10 +151,17 @@ public class FluidSpreadRecipe implements Recipe<Container> {
             }
         }
 
-        for (Direction direction : LiquidBlock.POSSIBLE_FLOW_DIRECTIONS) {
-            BlockPos adjacent = position.relative(direction.getOpposite());
+        if (spreadDirection == FluidSpreadDirection.Regular) {
+            for (Direction direction : LiquidBlock.POSSIBLE_FLOW_DIRECTIONS) {
+                BlockPos adjacent = position.relative(direction.getOpposite());
 
-            if (doesPositionMatchRequirements(level, adjacent)) {
+                if (doesPositionMatchRequirements(level, adjacent)) {
+                    var outputBlock = chooseOutputBlock();
+                    return Optional.of(outputBlock);
+                }
+            }
+        } else {
+            if (doesPositionMatchRequirements(level, position)) {
                 var outputBlock = chooseOutputBlock();
                 return Optional.of(outputBlock);
             }
@@ -155,7 +170,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
         return Optional.empty();
     }
 
-    private boolean doesPositionMatchRequirements(Level level, BlockPos position) {
+    private boolean doesPositionMatchRequirements(LevelAccessor level, BlockPos position) {
         if (intoFluid.isPresent()) {
             if (!level.getFluidState(position).is(intoFluid.get())) {
                 return false;
@@ -198,6 +213,10 @@ public class FluidSpreadRecipe implements Recipe<Container> {
         @SerializedName("any") DontCare
     }
 
+    public enum FluidSpreadDirection {
+        Down, Regular
+    }
+
     private record ResultBlock(Block block, int weight) {}
 
     private static class Serializer extends ForgeRegistryEntry<RecipeSerializer<?>> implements RecipeSerializer<FluidSpreadRecipe> {
@@ -218,6 +237,18 @@ public class FluidSpreadRecipe implements Recipe<Container> {
             // Output
             var resultProperty = document.get("result");
             var outputs = decodeResults(resultProperty);
+
+            var isFlowingDownProperty = document.getAsJsonPrimitive("flowing_down");
+            var spreadDirection = FluidSpreadDirection.Regular;
+
+            if (isFlowingDownProperty != null) {
+                if (!isFlowingDownProperty.isBoolean()) {
+                    throw new IllegalArgumentException("'flowing_down' property is not a boolean");
+                }
+                if (isFlowingDownProperty.getAsBoolean()) {
+                    spreadDirection = FluidSpreadDirection.Down;
+                }
+            }
 
             // Above block
             Optional<Block> aboveBlock = Optional.empty();
@@ -271,7 +302,16 @@ public class FluidSpreadRecipe implements Recipe<Container> {
                 throw new IllegalStateException("Missing 'into.fluid' or 'into.block'");
             }
 
-            return new FluidSpreadRecipe(id, input.fluidTag(), outputs, aboveBlock, intoFluid, input.state, intoBlock);
+            return new FluidSpreadRecipe(
+                id,
+                input.fluidTag(),
+                spreadDirection,
+                outputs,
+                aboveBlock,
+                intoFluid,
+                input.state,
+                intoBlock
+            );
         }
 
         private List<ResultBlock> decodeResults(JsonElement element) {
@@ -371,6 +411,8 @@ public class FluidSpreadRecipe implements Recipe<Container> {
                 outputs.add(new ResultBlock(block, weight));
             }
 
+            var spreadDirection = input.readEnum(FluidSpreadDirection.class);
+
             var hasAboveBlock = input.readBoolean();
             if (hasAboveBlock) {
                 var blockId = input.readResourceLocation();
@@ -395,7 +437,16 @@ public class FluidSpreadRecipe implements Recipe<Container> {
                 intoBlock = Optional.of(block);
             }
 
-            return new FluidSpreadRecipe(id, inputFluid, outputs, aboveBlock, intoFluid, intoFluidState, intoBlock);
+            return new FluidSpreadRecipe(
+                id,
+                inputFluid,
+                spreadDirection,
+                outputs,
+                aboveBlock,
+                intoFluid,
+                intoFluidState,
+                intoBlock
+            );
         }
 
         @Override
@@ -409,6 +460,8 @@ public class FluidSpreadRecipe implements Recipe<Container> {
                 output.writeResourceLocation(recipeOutput.block.getRegistryName());
                 output.writeInt(recipeOutput.weight);
             }
+
+            output.writeEnum(recipe.spreadDirection);
 
             output.writeBoolean(recipe.requireBelow.isPresent());
             if (recipe.requireBelow.isPresent()) {
