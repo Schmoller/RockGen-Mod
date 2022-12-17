@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import schmoller.mods.rockgen.RockGenerationMod;
 
-@Mixin(value = LiquidBlock.class, remap = false)
+@Mixin(LiquidBlock.class)
 public abstract class LiquidBlockMixin {
     /**
      * @author Steven Schmoll
@@ -39,7 +39,7 @@ public abstract class LiquidBlockMixin {
         return true;
     }
 
-    @Shadow
+    @Shadow(remap = false) // Forge method
     public abstract FlowingFluid getFluid();
 
     @Shadow
