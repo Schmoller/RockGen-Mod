@@ -3,6 +3,8 @@
   "package": "schmoller.mods.rockgen.mixins",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "FlowingFluidMixin",
+    "LavaFluidMixin",
     "LiquidBlockMixin"
   ],
   "client": [

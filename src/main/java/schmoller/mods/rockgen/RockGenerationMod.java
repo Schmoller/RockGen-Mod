@@ -17,6 +17,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
 import schmoller.mods.rockgen.recipes.FluidFallRecipe;
+import schmoller.mods.rockgen.recipes.FluidFallRecipeCache;
 import schmoller.mods.rockgen.recipes.FluidSpreadRecipe;
 import schmoller.mods.rockgen.recipes.FluidSpreadRecipeCache;
 
@@ -28,6 +29,7 @@ public class RockGenerationMod
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public static final FluidSpreadRecipeCache FluidSpreadRecipeCache = new FluidSpreadRecipeCache();
+    public static final FluidFallRecipeCache FluidFallRecipeCache = new FluidFallRecipeCache();
 
     public RockGenerationMod()
     {
@@ -76,5 +78,8 @@ public class RockGenerationMod
     public void onRecipesUpdated(RecipesUpdatedEvent event) {
         var spreadRecipes = event.getRecipeManager().getAllRecipesFor(FluidSpreadRecipe.Type);
         FluidSpreadRecipeCache.prepare(spreadRecipes);
+
+        var fallRecipes = event.getRecipeManager().getAllRecipesFor(FluidFallRecipe.Type);
+        FluidFallRecipeCache.prepare(fallRecipes);
     }
 }

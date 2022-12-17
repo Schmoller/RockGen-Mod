@@ -1,9 +1,12 @@
 package schmoller.mods.rockgen.recipes;
 
 import com.google.gson.JsonObject;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -11,6 +14,7 @@ import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.material.Fluid;
@@ -35,13 +39,13 @@ public class FluidFallRecipe implements Recipe<Container> {
     public static final Serializer SerializerInstance = new Serializer();
 
     private final ResourceLocation id;
-    private final Fluid fluid;
+    private final TagKey<Fluid> fluid;
     private final Block outputBlock;
-    private final Optional<Fluid> intoFluid;
+    private final Optional<TagKey<Fluid>> intoFluid;
     private final FluidSourceState fluidState;
     private final Optional<Block> intoBlock;
 
-    private FluidFallRecipe(ResourceLocation id, Fluid fluid, Block outputBlock, Optional<Fluid> intoFluid,
+    private FluidFallRecipe(ResourceLocation id, TagKey<Fluid> fluid, Block outputBlock, Optional<TagKey<Fluid>> intoFluid,
                             FluidSourceState fluidState, Optional<Block> intoBlock) {
         this.id = id;
         this.fluid = fluid;
@@ -51,9 +55,44 @@ public class FluidFallRecipe implements Recipe<Container> {
         this.intoBlock = intoBlock;
     }
 
+    public TagKey<Fluid> fluidToMatch() {
+        return fluid;
+    }
+
     @Override
     public boolean matches(@NotNull Container inventory, @NotNull Level world) {
         return false;
+    }
+
+    public Optional<Block> tryMatch(LevelAccessor level, BlockPos position) {
+        boolean isSourceBlock = false;
+
+
+        if (intoFluid.isPresent()) {
+            var fluidInWorld = level.getFluidState(position);
+
+            if (!fluidInWorld.is(intoFluid.get())) {
+                return Optional.empty();
+            }
+
+            if (fluidState != FluidSourceState.DontCare) {
+                if (fluidState == FluidSourceState.RequireSource && !fluidInWorld.isSource()) {
+                    return Optional.empty();
+                }
+
+                if (fluidState == FluidSourceState.RequireFlowing && fluidInWorld.isSource()) {
+                    return Optional.empty();
+                }
+            }
+        } else if (intoBlock.isPresent()) {
+            if (!level.getBlockState(position).is(intoBlock.get())) {
+                return Optional.empty();
+            }
+        } else {
+            return Optional.empty();
+        }
+
+        return Optional.of(outputBlock);
     }
 
     @Override
@@ -131,10 +170,7 @@ public class FluidFallRecipe implements Recipe<Container> {
             }
 
             var inputFluidId = new ResourceLocation(inputFluidProperty.getAsString());
-            var inputFluid = ForgeRegistries.FLUIDS.getValue(inputFluidId);
-            if (inputFluid == null) {
-                throw new IllegalStateException("Unknown fluid " + inputFluidId);
-            }
+            var inputFluid = FluidTags.create(inputFluidId);
 
             // Output block
             if (outputBlockProperty == null || !outputBlockProperty.isString()) {
@@ -152,7 +188,7 @@ public class FluidFallRecipe implements Recipe<Container> {
                 throw new IllegalArgumentException("'into' property is not an object");
             }
 
-            Optional<Fluid> intoFluid = Optional.empty();
+            Optional<TagKey<Fluid>> intoFluid = Optional.empty();
             Optional<Block> intoBlock = Optional.empty();
 
             FluidSourceState intoFluidState = FluidSourceState.DontCare;
@@ -166,10 +202,7 @@ public class FluidFallRecipe implements Recipe<Container> {
                 }
 
                 var intoFluidId = new ResourceLocation(intoFluidProperty.getAsString());
-                var fluid = ForgeRegistries.FLUIDS.getValue(intoFluidId);
-                if (fluid == null) {
-                    throw new IllegalStateException("Unknown fluid " + intoFluidId);
-                }
+                var fluid = FluidTags.create(intoFluidId);
                 intoFluid = Optional.of(fluid);
 
                 var fluidTypeProperty = intoObject.getAsJsonPrimitive("type");
@@ -209,18 +242,15 @@ public class FluidFallRecipe implements Recipe<Container> {
         @Nullable
         @Override
         public FluidFallRecipe fromNetwork(@NotNull ResourceLocation id, FriendlyByteBuf input) {
-            Fluid inputFluid;
+            TagKey<Fluid> inputFluid;
             Block outputBlock;
-            Optional<Fluid> intoFluid = Optional.empty();
+            Optional<TagKey<Fluid>> intoFluid = Optional.empty();
             Optional<Block> intoBlock = Optional.empty();
 
             FluidSourceState intoFluidState = FluidSourceState.DontCare;
 
             var inputFluidId = input.readResourceLocation();
-            inputFluid = ForgeRegistries.FLUIDS.getValue(inputFluidId);
-            if (inputFluid == null) {
-                throw new IllegalStateException("Unknown fluid " + inputFluidId);
-            }
+            inputFluid = FluidTags.create(inputFluidId);
 
             var outputBlockId = input.readResourceLocation();
             outputBlock = ForgeRegistries.BLOCKS.getValue(outputBlockId);
@@ -231,10 +261,7 @@ public class FluidFallRecipe implements Recipe<Container> {
             var usesIntoFluid = input.readBoolean();
             if (usesIntoFluid) {
                 var fluidId = input.readResourceLocation();
-                var fluid = ForgeRegistries.FLUIDS.getValue(fluidId);
-                if (fluid == null) {
-                    throw new IllegalStateException("Unknown fluid " + fluidId);
-                }
+                var fluid = FluidTags.create(fluidId);
                 intoFluid = Optional.of(fluid);
 
                 intoFluidState = input.readEnum(FluidSourceState.class);
@@ -253,12 +280,12 @@ public class FluidFallRecipe implements Recipe<Container> {
         @Override
         public void toNetwork(FriendlyByteBuf output, FluidFallRecipe recipe) {
             // NOTE: These cannot be null
-            output.writeResourceLocation(recipe.fluid.getRegistryName());
+            output.writeResourceLocation(recipe.fluid.location());
             output.writeResourceLocation(recipe.outputBlock.getRegistryName());
 
             output.writeBoolean(recipe.intoFluid.isPresent());
             if (recipe.intoFluid.isPresent()) {
-                output.writeResourceLocation(recipe.intoFluid.get().getRegistryName());
+                output.writeResourceLocation(recipe.intoFluid.get().location());
                 output.writeEnum(recipe.fluidState);
             } else {
                 assert (recipe.intoBlock.isPresent());
