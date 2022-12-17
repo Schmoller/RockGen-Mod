@@ -52,13 +52,13 @@ public class FluidFallRecipe implements Recipe<Container> {
     }
 
     @Override
-    public boolean matches(Container inventory, Level world) {
+    public boolean matches(@NotNull Container inventory, @NotNull Level world) {
         return false;
     }
 
     @Override
-    public ItemStack assemble(Container inventory) {
-        return null;
+    public @NotNull ItemStack assemble(@NotNull Container inventory) {
+        throw new IllegalStateException("This recipe cannot be used with an inventory");
     }
 
     @Override
@@ -67,12 +67,12 @@ public class FluidFallRecipe implements Recipe<Container> {
     }
 
     @Override
-    public ItemStack getResultItem() {
+    public @NotNull ItemStack getResultItem() {
         return new ItemStack(outputBlock.asItem());
     }
 
     @Override
-    public NonNullList<ItemStack> getRemainingItems(Container p_44004_) {
+    public @NotNull NonNullList<ItemStack> getRemainingItems(@NotNull Container p_44004_) {
         return Recipe.super.getRemainingItems(p_44004_);
     }
 
@@ -83,22 +83,22 @@ public class FluidFallRecipe implements Recipe<Container> {
 
 
     @Override
-    public ItemStack getToastSymbol() {
+    public @NotNull ItemStack getToastSymbol() {
         return LazyLava.get();
     }
 
     @Override
-    public ResourceLocation getId() {
+    public @NotNull ResourceLocation getId() {
         return id;
     }
 
     @Override
-    public RecipeSerializer<?> getSerializer() {
+    public @NotNull RecipeSerializer<?> getSerializer() {
         return SerializerInstance;
     }
 
     @Override
-    public RecipeType<?> getType() {
+    public @NotNull RecipeType<?> getType() {
         return Type;
     }
 
@@ -120,7 +120,7 @@ public class FluidFallRecipe implements Recipe<Container> {
         }
 
         @Override
-        public FluidFallRecipe fromJson(@NotNull ResourceLocation id, JsonObject document) {
+        public @NotNull FluidFallRecipe fromJson(@NotNull ResourceLocation id, JsonObject document) {
             var inputFluidProperty = document.getAsJsonPrimitive("fluid");
             var outputBlockProperty = document.getAsJsonPrimitive("result");
             var intoObject = document.getAsJsonObject("into");

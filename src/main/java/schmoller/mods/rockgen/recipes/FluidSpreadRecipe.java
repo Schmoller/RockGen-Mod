@@ -18,7 +18,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.common.util.Lazy;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -64,7 +63,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
     }
 
     @Override
-    public boolean matches(Container inventory, Level world) {
+    public boolean matches(@NotNull Container inventory, @NotNull Level world) {
         return false;
     }
 
@@ -103,9 +102,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
                 if (fluidState == FluidSourceState.RequireSource && !isSourceBlock) {
                     return false;
                 }
-                if (fluidState == FluidSourceState.RequireFlowing && isSourceBlock) {
-                    return false;
-                }
+                return fluidState != FluidSourceState.RequireFlowing || !isSourceBlock;
             }
             return true;
         } else if (intoBlock.isPresent()) {
@@ -116,8 +113,8 @@ public class FluidSpreadRecipe implements Recipe<Container> {
     }
 
     @Override
-    public ItemStack assemble(Container inventory) {
-        return null;
+    public @NotNull ItemStack assemble(@NotNull Container inventory) {
+        throw new IllegalStateException("Recipe cannot be used with inventories");
     }
 
     @Override
@@ -126,12 +123,12 @@ public class FluidSpreadRecipe implements Recipe<Container> {
     }
 
     @Override
-    public ItemStack getResultItem() {
+    public @NotNull ItemStack getResultItem() {
         return new ItemStack(outputBlock.asItem());
     }
 
     @Override
-    public NonNullList<ItemStack> getRemainingItems(Container p_44004_) {
+    public @NotNull NonNullList<ItemStack> getRemainingItems(@NotNull Container p_44004_) {
         return Recipe.super.getRemainingItems(p_44004_);
     }
 
@@ -142,22 +139,22 @@ public class FluidSpreadRecipe implements Recipe<Container> {
 
 
     @Override
-    public ItemStack getToastSymbol() {
+    public @NotNull ItemStack getToastSymbol() {
         return LazyLava.get();
     }
 
     @Override
-    public ResourceLocation getId() {
+    public @NotNull ResourceLocation getId() {
         return id;
     }
 
     @Override
-    public RecipeSerializer<?> getSerializer() {
+    public @NotNull RecipeSerializer<?> getSerializer() {
         return SerializerInstance;
     }
 
     @Override
-    public RecipeType<?> getType() {
+    public @NotNull RecipeType<?> getType() {
         return Type;
     }
 
@@ -180,7 +177,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
         }
 
         @Override
-        public FluidSpreadRecipe fromJson(@NotNull ResourceLocation id, JsonObject document) {
+        public @NotNull FluidSpreadRecipe fromJson(@NotNull ResourceLocation id, JsonObject document) {
             var inputFluidProperty = document.getAsJsonPrimitive("fluid");
             var outputBlockProperty = document.getAsJsonPrimitive("result");
             var aboveBlockProperty = document.getAsJsonPrimitive("above_block");
