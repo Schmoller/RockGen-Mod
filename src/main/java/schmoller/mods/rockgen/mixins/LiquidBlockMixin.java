@@ -16,7 +16,7 @@ public abstract class LiquidBlockMixin {
     /**
      * @author Steven Schmoll
      * @reason Allows us to override vanilla cobblestone, basalt, and obsidian generation
-     *         with a recipe based system.
+     * with a recipe based system.
      */
     @Overwrite
     private boolean shouldSpreadLiquid(Level level, BlockPos flowingToPosition, BlockState p_54699_) {
@@ -24,7 +24,13 @@ public abstract class LiquidBlockMixin {
             var blockToSet = recipe.tryMatch(level, flowingToPosition);
             if (blockToSet.isPresent()) {
                 var block = blockToSet.get();
-                level.setBlockAndUpdate(flowingToPosition, net.minecraftforge.event.ForgeEventFactory.fireFluidPlaceBlockEvent(level, flowingToPosition, flowingToPosition, block.defaultBlockState()));
+                level.setBlockAndUpdate(flowingToPosition,
+                    net.minecraftforge.event.ForgeEventFactory.fireFluidPlaceBlockEvent(level,
+                        flowingToPosition,
+                        flowingToPosition,
+                        block.defaultBlockState()
+                    )
+                );
                 this.fizz(level, flowingToPosition);
                 return false;
             }
@@ -37,7 +43,6 @@ public abstract class LiquidBlockMixin {
     public abstract FlowingFluid getFluid();
 
     @Shadow
-    private void fizz(LevelAccessor p_54701_, BlockPos p_54702_) {}
-
-
+    private void fizz(LevelAccessor p_54701_, BlockPos p_54702_) {
+    }
 }

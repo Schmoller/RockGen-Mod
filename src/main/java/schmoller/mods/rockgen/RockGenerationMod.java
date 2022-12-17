@@ -23,47 +23,24 @@ import schmoller.mods.rockgen.recipes.FluidSpreadRecipeCache;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod("rockgen")
-public class RockGenerationMod
-{
+public class RockGenerationMod {
+    public static final FluidSpreadRecipeCache FluidSpreadRecipeCache = new FluidSpreadRecipeCache();
+    public static final FluidFallRecipeCache FluidFallRecipeCache = new FluidFallRecipeCache();
     // Directly reference a slf4j logger
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    public static final FluidSpreadRecipeCache FluidSpreadRecipeCache = new FluidSpreadRecipeCache();
-    public static final FluidFallRecipeCache FluidFallRecipeCache = new FluidFallRecipeCache();
-
-    public RockGenerationMod()
-    {
+    public RockGenerationMod() {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
-        FMLJavaModLoadingContext.get().getModEventBus().addGenericListener(RecipeSerializer.class, this::onRegisterRecipes);
+        FMLJavaModLoadingContext.get()
+            .getModEventBus()
+            .addGenericListener(RecipeSerializer.class, this::onRegisterRecipes);
         MinecraftForge.EVENT_BUS.register(this);
     }
 
-    private void setup(final FMLCommonSetupEvent event)
-    {
+    private void setup(final FMLCommonSetupEvent event) {
         // some preinit code
         LOGGER.info("HELLO FROM PREINIT");
         LOGGER.info("DIRT BLOCK >> {}", Blocks.DIRT.getRegistryName());
-    }
-
-    // You can use SubscribeEvent and let the Event Bus discover methods to call
-    @SubscribeEvent
-    public void onServerStarting(ServerStartingEvent event)
-    {
-        // Do something when the server starts
-        LOGGER.info("HELLO from server starting");
-    }
-
-    // You can use EventBusSubscriber to automatically subscribe events on the contained class (this is subscribing to the MOD
-    // Event bus for receiving Registry Events)
-    @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
-    public static class RegistryEvents
-    {
-        @SubscribeEvent
-        public static void onBlocksRegistry(final RegistryEvent.Register<Block> blockRegistryEvent)
-        {
-            // Register a new block here
-            LOGGER.info("HELLO from Register Block");
-        }
     }
 
     public void onRegisterRecipes(RegistryEvent.Register<RecipeSerializer<?>> event) {
@@ -74,6 +51,13 @@ public class RockGenerationMod
         event.getRegistry().register(FluidFallRecipe.SerializerInstance);
     }
 
+    // You can use SubscribeEvent and let the Event Bus discover methods to call
+    @SubscribeEvent
+    public void onServerStarting(ServerStartingEvent event) {
+        // Do something when the server starts
+        LOGGER.info("HELLO from server starting");
+    }
+
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onRecipesUpdated(RecipesUpdatedEvent event) {
         var spreadRecipes = event.getRecipeManager().getAllRecipesFor(FluidSpreadRecipe.Type);
@@ -81,5 +65,16 @@ public class RockGenerationMod
 
         var fallRecipes = event.getRecipeManager().getAllRecipesFor(FluidFallRecipe.Type);
         FluidFallRecipeCache.prepare(fallRecipes);
+    }
+
+    // You can use EventBusSubscriber to automatically subscribe events on the contained class (this is subscribing to the MOD
+    // Event bus for receiving Registry Events)
+    @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
+    public static class RegistryEvents {
+        @SubscribeEvent
+        public static void onBlocksRegistry(final RegistryEvent.Register<Block> blockRegistryEvent) {
+            // Register a new block here
+            LOGGER.info("HELLO from Register Block");
+        }
     }
 }

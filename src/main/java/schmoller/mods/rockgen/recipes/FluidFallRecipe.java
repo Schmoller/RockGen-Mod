@@ -27,17 +27,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Optional;
 
 public class FluidFallRecipe implements Recipe<Container> {
-    private enum FluidSourceState {
-        RequireSource,
-        RequireFlowing,
-        DontCare
-    }
-
     public static final Lazy<ItemStack> LazyLava = Lazy.of(() -> new ItemStack(Items.LAVA_BUCKET));
     public static final String TypeId = "fluid_fall";
     public static final RecipeType<FluidFallRecipe> Type = new Type();
     public static final Serializer SerializerInstance = new Serializer();
-
     private final ResourceLocation id;
     private final TagKey<Fluid> fluid;
     private final Block outputBlock;
@@ -45,8 +38,10 @@ public class FluidFallRecipe implements Recipe<Container> {
     private final FluidSourceState fluidState;
     private final Optional<Block> intoBlock;
 
-    private FluidFallRecipe(ResourceLocation id, TagKey<Fluid> fluid, Block outputBlock, Optional<TagKey<Fluid>> intoFluid,
-                            FluidSourceState fluidState, Optional<Block> intoBlock) {
+    private FluidFallRecipe(
+        ResourceLocation id, TagKey<Fluid> fluid, Block outputBlock, Optional<TagKey<Fluid>> intoFluid,
+        FluidSourceState fluidState, Optional<Block> intoBlock
+    ) {
         this.id = id;
         this.fluid = fluid;
         this.outputBlock = outputBlock;
@@ -64,9 +59,53 @@ public class FluidFallRecipe implements Recipe<Container> {
         return false;
     }
 
+    @Override
+    public @NotNull ItemStack assemble(@NotNull Container inventory) {
+        throw new IllegalStateException("This recipe cannot be used with an inventory");
+    }
+
+    @Override
+    public boolean canCraftInDimensions(int p_43999_, int p_44000_) {
+        return true;
+    }
+
+    @Override
+    public @NotNull ItemStack getResultItem() {
+        return new ItemStack(outputBlock.asItem());
+    }
+
+    @Override
+    public @NotNull NonNullList<ItemStack> getRemainingItems(@NotNull Container p_44004_) {
+        return Recipe.super.getRemainingItems(p_44004_);
+    }
+
+    @Override
+    public boolean isSpecial() {
+        return true;
+    }
+
+    @Override
+    public @NotNull ItemStack getToastSymbol() {
+        return LazyLava.get();
+    }
+
+    @Override
+    public @NotNull ResourceLocation getId() {
+        return id;
+    }
+
+    @Override
+    public @NotNull RecipeSerializer<?> getSerializer() {
+        return SerializerInstance;
+    }
+
+    @Override
+    public @NotNull RecipeType<?> getType() {
+        return Type;
+    }
+
     public Optional<Block> tryMatch(LevelAccessor level, BlockPos position) {
         boolean isSourceBlock = false;
-
 
         if (intoFluid.isPresent()) {
             var fluidInWorld = level.getFluidState(position);
@@ -96,61 +135,12 @@ public class FluidFallRecipe implements Recipe<Container> {
     }
 
     @Override
-    public @NotNull ItemStack assemble(@NotNull Container inventory) {
-        throw new IllegalStateException("This recipe cannot be used with an inventory");
-    }
-
-    @Override
-    public boolean canCraftInDimensions(int p_43999_, int p_44000_) {
-        return true;
-    }
-
-    @Override
-    public @NotNull ItemStack getResultItem() {
-        return new ItemStack(outputBlock.asItem());
-    }
-
-    @Override
-    public @NotNull NonNullList<ItemStack> getRemainingItems(@NotNull Container p_44004_) {
-        return Recipe.super.getRemainingItems(p_44004_);
-    }
-
-    @Override
-    public boolean isSpecial() {
-        return true;
-    }
-
-
-    @Override
-    public @NotNull ItemStack getToastSymbol() {
-        return LazyLava.get();
-    }
-
-    @Override
-    public @NotNull ResourceLocation getId() {
-        return id;
-    }
-
-    @Override
-    public @NotNull RecipeSerializer<?> getSerializer() {
-        return SerializerInstance;
-    }
-
-    @Override
-    public @NotNull RecipeType<?> getType() {
-        return Type;
-    }
-
-    @Override
     public String toString() {
-        return "FluidFallRecipe{" +
-                "id=" + id +
-                ", fluid=" + fluid +
-                ", outputBlock=" + outputBlock +
-                ", intoFluid=" + intoFluid +
-                ", fluidState=" + fluidState +
-                ", intoBlock=" + intoBlock +
-                '}';
+        return "FluidFallRecipe{" + "id=" + id + ", fluid=" + fluid + ", outputBlock=" + outputBlock + ", intoFluid=" + intoFluid + ", fluidState=" + fluidState + ", intoBlock=" + intoBlock + '}';
+    }
+
+    private enum FluidSourceState {
+        RequireSource, RequireFlowing, DontCare
     }
 
     private static class Serializer extends ForgeRegistryEntry<RecipeSerializer<?>> implements RecipeSerializer<FluidFallRecipe> {
@@ -216,7 +206,8 @@ public class FluidFallRecipe implements Recipe<Container> {
                         case "source" -> FluidSourceState.RequireSource;
                         case "flowing" -> FluidSourceState.RequireFlowing;
                         case "dont-care" -> FluidSourceState.DontCare;
-                        default -> throw new IllegalArgumentException("'into.type' property is not one of: 'source', 'flowing', or 'dont-care'");
+                        default -> throw new IllegalArgumentException(
+                            "'into.type' property is not one of: 'source', 'flowing', or 'dont-care'");
                     };
                 }
             } else if (intoBlockProperty != null) {
@@ -231,7 +222,6 @@ public class FluidFallRecipe implements Recipe<Container> {
                 }
 
                 intoBlock = Optional.of(block);
-
             } else {
                 throw new IllegalStateException("Missing 'into.fluid' or 'into.block'");
             }

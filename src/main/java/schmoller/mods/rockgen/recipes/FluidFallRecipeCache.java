@@ -10,9 +10,6 @@ import java.util.Collection;
 import java.util.List;
 
 public class FluidFallRecipeCache {
-    private record GroupedRecipes(TagKey<Fluid> fluid, List<FluidFallRecipe> recipes) {
-    }
-
     private List<GroupedRecipes> groupedRecipes;
 
     public void prepare(Collection<FluidFallRecipe> recipes) {
@@ -22,7 +19,10 @@ public class FluidFallRecipeCache {
             recipesByFluid.put(recipe.fluidToMatch(), recipe);
         }
 
-        groupedRecipes = recipesByFluid.keys().stream().map(key -> new GroupedRecipes(key, recipesByFluid.get(key))).toList();
+        groupedRecipes = recipesByFluid.keys()
+            .stream()
+            .map(key -> new GroupedRecipes(key, recipesByFluid.get(key)))
+            .toList();
     }
 
     public Iterable<FluidFallRecipe> get(FlowingFluid flowingType) {
@@ -34,4 +34,6 @@ public class FluidFallRecipeCache {
 
         return List.of();
     }
+
+    private record GroupedRecipes(TagKey<Fluid> fluid, List<FluidFallRecipe> recipes) {}
 }

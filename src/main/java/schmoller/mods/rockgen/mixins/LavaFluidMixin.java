@@ -19,7 +19,10 @@ public abstract class LavaFluidMixin extends FlowingFluid {
      * @reason To take control of stone generation
      */
     @Overwrite
-    protected void spreadTo(@NotNull LevelAccessor p_76220_, @NotNull BlockPos p_76221_, @NotNull BlockState p_76222_, @NotNull Direction p_76223_, @NotNull FluidState p_76224_) {
+    protected void spreadTo(
+        @NotNull LevelAccessor p_76220_, @NotNull BlockPos p_76221_, @NotNull BlockState p_76222_,
+        @NotNull Direction p_76223_, @NotNull FluidState p_76224_
+    ) {
         // Get rid of stone generation here. We will make this more generic for FlowingFluid
         super.spreadTo(p_76220_, p_76221_, p_76222_, p_76223_, p_76224_);
     }

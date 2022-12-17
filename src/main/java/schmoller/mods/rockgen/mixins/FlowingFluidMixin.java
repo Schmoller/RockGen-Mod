@@ -18,7 +18,10 @@ import schmoller.mods.rockgen.RockGenerationMod;
 @Mixin(FlowingFluid.class)
 public abstract class FlowingFluidMixin extends Fluid {
     @Inject(method = "spreadTo", at = @At("HEAD"), cancellable = true)
-    private void handleSpreadRecipe(@NotNull LevelAccessor level, @NotNull BlockPos flowingToPosition, @NotNull BlockState p_76222_, @NotNull Direction spreadDirection, @NotNull FluidState p_76224_, CallbackInfo context) {
+    private void handleSpreadRecipe(
+        @NotNull LevelAccessor level, @NotNull BlockPos flowingToPosition, @NotNull BlockState p_76222_,
+        @NotNull Direction spreadDirection, @NotNull FluidState p_76224_, CallbackInfo context
+    ) {
         if (spreadDirection != Direction.DOWN) {
             return;
         }
@@ -31,7 +34,14 @@ public abstract class FlowingFluidMixin extends Fluid {
             }
 
             if (p_76222_.getBlock() instanceof LiquidBlock) {
-                level.setBlock(flowingToPosition, net.minecraftforge.event.ForgeEventFactory.fireFluidPlaceBlockEvent(level, flowingToPosition, flowingToPosition, blockToSet.get().defaultBlockState()), 3);
+                level.setBlock(flowingToPosition,
+                    net.minecraftforge.event.ForgeEventFactory.fireFluidPlaceBlockEvent(level,
+                        flowingToPosition,
+                        flowingToPosition,
+                        blockToSet.get().defaultBlockState()
+                    ),
+                    3
+                );
             }
 
             this.fizz(level, flowingToPosition);

@@ -35,20 +35,10 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class FluidSpreadRecipe implements Recipe<Container> {
-    private enum FluidSourceState {
-        RequireSource,
-        RequireFlowing,
-        DontCare
-    }
-
-    private record ResultBlock(Block block, int weight) {
-    }
-
     public static final Lazy<ItemStack> LazyLava = Lazy.of(() -> new ItemStack(Items.LAVA_BUCKET));
     public static final String TypeId = "fluid_spread";
     public static final RecipeType<FluidSpreadRecipe> Type = new Type();
     public static final Serializer SerializerInstance = new Serializer();
-
     private final ResourceLocation id;
     private final TagKey<Fluid> fluid;
     private final List<ResultBlock> outputs;
@@ -57,11 +47,12 @@ public class FluidSpreadRecipe implements Recipe<Container> {
     private final Optional<TagKey<Fluid>> intoFluid;
     private final FluidSourceState fluidState;
     private final Optional<Block> intoBlock;
-
     private final Random random = new Random();
 
-    private FluidSpreadRecipe(ResourceLocation id, TagKey<Fluid> fluid, List<ResultBlock> outputs, Optional<Block> requireBelow,
-                              Optional<TagKey<Fluid>> intoFluid, FluidSourceState fluidState, Optional<Block> intoBlock) {
+    private FluidSpreadRecipe(
+        ResourceLocation id, TagKey<Fluid> fluid, List<ResultBlock> outputs, Optional<Block> requireBelow,
+        Optional<TagKey<Fluid>> intoFluid, FluidSourceState fluidState, Optional<Block> intoBlock
+    ) {
         this.id = id;
         this.fluid = fluid;
         this.outputs = outputs;
@@ -84,6 +75,51 @@ public class FluidSpreadRecipe implements Recipe<Container> {
     @Override
     public boolean matches(@NotNull Container inventory, @NotNull Level world) {
         return false;
+    }
+
+    @Override
+    public @NotNull ItemStack assemble(@NotNull Container inventory) {
+        throw new IllegalStateException("Recipe cannot be used with inventories");
+    }
+
+    @Override
+    public boolean canCraftInDimensions(int p_43999_, int p_44000_) {
+        return true;
+    }
+
+    @Override
+    public @NotNull ItemStack getResultItem() {
+        return new ItemStack(outputs.get(0).block.asItem());
+    }
+
+    @Override
+    public @NotNull NonNullList<ItemStack> getRemainingItems(@NotNull Container p_44004_) {
+        return Recipe.super.getRemainingItems(p_44004_);
+    }
+
+    @Override
+    public boolean isSpecial() {
+        return true;
+    }
+
+    @Override
+    public @NotNull ItemStack getToastSymbol() {
+        return LazyLava.get();
+    }
+
+    @Override
+    public @NotNull ResourceLocation getId() {
+        return id;
+    }
+
+    @Override
+    public @NotNull RecipeSerializer<?> getSerializer() {
+        return SerializerInstance;
+    }
+
+    @Override
+    public @NotNull RecipeType<?> getType() {
+        return Type;
     }
 
     public Optional<Block> tryMatch(Level level, BlockPos position) {
@@ -151,63 +187,15 @@ public class FluidSpreadRecipe implements Recipe<Container> {
     }
 
     @Override
-    public @NotNull ItemStack assemble(@NotNull Container inventory) {
-        throw new IllegalStateException("Recipe cannot be used with inventories");
-    }
-
-    @Override
-    public boolean canCraftInDimensions(int p_43999_, int p_44000_) {
-        return true;
-    }
-
-    @Override
-    public @NotNull ItemStack getResultItem() {
-        return new ItemStack(outputs.get(0).block.asItem());
-    }
-
-    @Override
-    public @NotNull NonNullList<ItemStack> getRemainingItems(@NotNull Container p_44004_) {
-        return Recipe.super.getRemainingItems(p_44004_);
-    }
-
-    @Override
-    public boolean isSpecial() {
-        return true;
-    }
-
-
-    @Override
-    public @NotNull ItemStack getToastSymbol() {
-        return LazyLava.get();
-    }
-
-    @Override
-    public @NotNull ResourceLocation getId() {
-        return id;
-    }
-
-    @Override
-    public @NotNull RecipeSerializer<?> getSerializer() {
-        return SerializerInstance;
-    }
-
-    @Override
-    public @NotNull RecipeType<?> getType() {
-        return Type;
-    }
-
-    @Override
     public String toString() {
-        return "FluidSpreadRecipe{" +
-                "id=" + id +
-                ", fluid=" + fluid +
-                ", outputs=" + outputs +
-                ", requireBelow=" + requireBelow +
-                ", intoFluid=" + intoFluid +
-                ", fluidState=" + fluidState +
-                ", intoBlock=" + intoBlock +
-                '}';
+        return "FluidSpreadRecipe{" + "id=" + id + ", fluid=" + fluid + ", outputs=" + outputs + ", requireBelow=" + requireBelow + ", intoFluid=" + intoFluid + ", fluidState=" + fluidState + ", intoBlock=" + intoBlock + '}';
     }
+
+    private enum FluidSourceState {
+        RequireSource, RequireFlowing, DontCare
+    }
+
+    private record ResultBlock(Block block, int weight) {}
 
     private static class Serializer extends ForgeRegistryEntry<RecipeSerializer<?>> implements RecipeSerializer<FluidSpreadRecipe> {
         Serializer() {
@@ -282,7 +270,8 @@ public class FluidSpreadRecipe implements Recipe<Container> {
                         case "source" -> FluidSourceState.RequireSource;
                         case "flowing" -> FluidSourceState.RequireFlowing;
                         case "dont-care" -> FluidSourceState.DontCare;
-                        default -> throw new IllegalArgumentException("'into.type' property is not one of: 'source', 'flowing', or 'dont-care'");
+                        default -> throw new IllegalArgumentException(
+                            "'into.type' property is not one of: 'source', 'flowing', or 'dont-care'");
                     };
                 }
             } else if (intoBlockProperty != null) {
@@ -297,7 +286,6 @@ public class FluidSpreadRecipe implements Recipe<Container> {
                 }
 
                 intoBlock = Optional.of(block);
-
             } else {
                 throw new IllegalStateException("Missing 'into.fluid' or 'into.block'");
             }
@@ -319,11 +307,25 @@ public class FluidSpreadRecipe implements Recipe<Container> {
                 var outputArrayProperty = element.getAsJsonArray();
 
                 return StreamSupport.stream(outputArrayProperty.spliterator(), false)
-                        .map(this::decodeResultBlockFromJsonElement)
-                        .collect(Collectors.toList());
+                    .map(this::decodeResultBlockFromJsonElement)
+                    .collect(Collectors.toList());
             }
 
             throw new IllegalArgumentException("'result' property is not a string or array");
+        }
+
+        private Block decodeBlockFromPrimitive(JsonPrimitive primitive, String path) {
+            if (primitive == null || !primitive.isString()) {
+                throw new IllegalArgumentException("'" + path + "' property is not a string");
+            }
+
+            var blockId = new ResourceLocation(primitive.getAsString());
+            var block = ForgeRegistries.BLOCKS.getValue(blockId);
+            if (block == null || block == Blocks.AIR) {
+                throw new IllegalStateException("Unknown block " + blockId);
+            }
+
+            return block;
         }
 
         private ResultBlock decodeResultBlockFromJsonElement(JsonElement element) {
@@ -358,20 +360,6 @@ public class FluidSpreadRecipe implements Recipe<Container> {
             }
 
             return new ResultBlock(outputBlock, weight);
-        }
-
-        private Block decodeBlockFromPrimitive(JsonPrimitive primitive, String path) {
-            if (primitive == null || !primitive.isString()) {
-                throw new IllegalArgumentException("'" + path + "' property is not a string");
-            }
-
-            var blockId = new ResourceLocation(primitive.getAsString());
-            var block = ForgeRegistries.BLOCKS.getValue(blockId);
-            if (block == null || block == Blocks.AIR) {
-                throw new IllegalStateException("Unknown block " + blockId);
-            }
-
-            return block;
         }
 
         @Nullable
