@@ -37,7 +37,7 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class FluidSpreadRecipe implements Recipe<Container> {
+public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpreadRecipe> {
     public static final Lazy<ItemStack> LazyLava = Lazy.of(() -> new ItemStack(Items.LAVA_BUCKET));
     public static final String TypeId = "fluid_spread";
     public static final RecipeType<FluidSpreadRecipe> Type = new Type();
@@ -207,6 +207,32 @@ public class FluidSpreadRecipe implements Recipe<Container> {
         return "FluidSpreadRecipe{" + "id=" + id + ", fluid=" + fluid + ", outputs=" + outputs + ", requireBelow=" + requireBelow + ", intoFluid=" + intoFluid + ", fluidState=" + fluidState + ", intoBlock=" + intoBlock + '}';
     }
 
+    /**
+     * This comparator is here to order by specificity so that more specific recipes are checked first.
+     *
+     * @param other The other recipe to compare
+     * @return The sort order
+     */
+    @Override
+    public int compareTo(@NotNull FluidSpreadRecipe other) {
+        // If one requires a block below to match, then it should be checked above one that doesn't
+        if (requireBelow.isPresent() && other.requireBelow.isEmpty()) {
+            return -1;
+        } else if (requireBelow.isEmpty() && other.requireBelow.isPresent()) {
+            return 1;
+        }
+
+        // If one requires a specific fluid state to match, then that should be checked above ones that don't care.
+        if (fluidState == FluidSourceState.DontCare && other.fluidState != FluidSourceState.DontCare) {
+            return 1;
+        } else if (fluidState != FluidSourceState.DontCare && other.fluidState == FluidSourceState.DontCare) {
+            return -1;
+        }
+
+        // Recipes have equal specificity
+        return 0;
+    }
+
     private enum FluidSourceState {
         @SerializedName("source") RequireSource,
         @SerializedName("flowing") RequireFlowing,
@@ -302,8 +328,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
                 throw new IllegalStateException("Missing 'into.fluid' or 'into.block'");
             }
 
-            return new FluidSpreadRecipe(
-                id,
+            return new FluidSpreadRecipe(id,
                 input.fluidTag(),
                 spreadDirection,
                 outputs,
@@ -437,8 +462,7 @@ public class FluidSpreadRecipe implements Recipe<Container> {
                 intoBlock = Optional.of(block);
             }
 
-            return new FluidSpreadRecipe(
-                id,
+            return new FluidSpreadRecipe(id,
                 inputFluid,
                 spreadDirection,
                 outputs,

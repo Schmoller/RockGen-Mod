@@ -24,6 +24,7 @@ public class FluidSpreadRecipeCache {
             var recipesOfSameFluidType = recipesByFluid.get(key)
                 .stream()
                 .filter(recipe -> recipe.fluidSpreadDirection() == FluidSpreadRecipe.FluidSpreadDirection.Regular)
+                .sorted()
                 .toList();
             return new GroupedRecipes(key, recipesOfSameFluidType);
         }).filter(group -> !group.recipes.isEmpty()).toList();
@@ -32,6 +33,7 @@ public class FluidSpreadRecipeCache {
             var recipesOfSameFluidType = recipesByFluid.get(key)
                 .stream()
                 .filter(recipe -> recipe.fluidSpreadDirection() == FluidSpreadRecipe.FluidSpreadDirection.Down)
+                .sorted()
                 .toList();
             return new GroupedRecipes(key, recipesOfSameFluidType);
         }).filter(group -> !group.recipes.isEmpty()).toList();
