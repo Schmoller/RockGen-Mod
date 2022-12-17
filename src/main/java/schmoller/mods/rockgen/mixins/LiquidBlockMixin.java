@@ -13,6 +13,11 @@ import schmoller.mods.rockgen.RockGenerationMod;
 
 @Mixin(value = LiquidBlock.class, remap = false)
 public abstract class LiquidBlockMixin {
+    /**
+     * @author Steven Schmoll
+     * @reason Allows us to override vanilla cobblestone, basalt, and obsidian generation
+     *         with a recipe based system.
+     */
     @Overwrite
     private boolean shouldSpreadLiquid(Level level, BlockPos flowingToPosition, BlockState p_54699_) {
         for (var recipe : RockGenerationMod.FluidSpreadRecipeCache.get(this.getFluid())) {
