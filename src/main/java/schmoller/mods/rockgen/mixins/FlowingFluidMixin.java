@@ -26,7 +26,7 @@ public abstract class FlowingFluidMixin extends Fluid {
             return;
         }
 
-        for (var recipe : RockGenerationMod.FluidSpreadRecipeCache.getFalling((FlowingFluid) (Object) this)) {
+        for (var recipe : RockGenerationMod.FluidSpreadRecipeCache.getFalling((FlowingFluid) (Object) this, level)) {
             var blockToSet = recipe.tryMatch(level, flowingToPosition);
 
             if (blockToSet.isEmpty()) {
@@ -35,7 +35,8 @@ public abstract class FlowingFluidMixin extends Fluid {
 
             if (p_76222_.getBlock() instanceof LiquidBlock) {
                 level.setBlock(flowingToPosition,
-                    net.minecraftforge.event.ForgeEventFactory.fireFluidPlaceBlockEvent(level, flowingToPosition,
+                    net.minecraftforge.event.ForgeEventFactory.fireFluidPlaceBlockEvent(level,
+                        flowingToPosition,
                         flowingToPosition,
                         blockToSet.get().defaultBlockState()
                     ),
