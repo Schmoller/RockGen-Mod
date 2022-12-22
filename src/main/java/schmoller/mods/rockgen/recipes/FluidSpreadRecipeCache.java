@@ -62,13 +62,13 @@ public class FluidSpreadRecipeCache {
         prepare(recipes);
     }
 
-    public Iterable<FluidSpreadRecipe> getRegular(FlowingFluid flowingType, LevelAccessor level) {
+    public Iterable<FluidSpreadRecipe> getRegular(FlowingFluid fluidState, LevelAccessor level) {
         if (groupedRegularRecipes == null) {
             prepare(level);
         }
 
         for (var group : groupedRegularRecipes) {
-            if (flowingType.is(group.fluid)) {
+            if (fluidState.is(group.fluid)) {
                 return group.recipes;
             }
         }
