@@ -24,7 +24,7 @@ public class FluidSpreadRecipeCache {
         ListMultimap<TagKey<Fluid>, FluidSpreadRecipe> recipesByFluid = ArrayListMultimap.create();
 
         for (var recipe : recipes) {
-            recipesByFluid.put(recipe.fluidToMatch(), recipe);
+            recipesByFluid.put(recipe.getFluidToMatch(), recipe);
         }
 
         groupedRegularRecipes = recipesByFluid.keys().stream().distinct().map(key -> {

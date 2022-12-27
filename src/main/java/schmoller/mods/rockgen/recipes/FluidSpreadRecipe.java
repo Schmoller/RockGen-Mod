@@ -76,12 +76,32 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
         maxOutputWeight = outputWeight;
     }
 
-    public TagKey<Fluid> fluidToMatch() {
+    public TagKey<Fluid> getFluidToMatch() {
         return fluid;
+    }
+
+    public List<ResultBlock> getOutputs() {
+        return outputs;
+    }
+
+    public Optional<BlockMatcher> getBlockBelowRequirement() {
+        return requireBelow;
+    }
+
+    public Optional<BlockMatcher> getTargetBlock() {
+        return intoBlock;
+    }
+
+    public Optional<TagKey<Fluid>> getTargetFluid() {
+        return intoFluid;
     }
 
     public FluidSpreadDirection fluidSpreadDirection() {
         return spreadDirection;
+    }
+
+    public FluidSourceState getFluidState() {
+        return fluidState;
     }
 
     @Override
@@ -236,7 +256,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
         return 0;
     }
 
-    private enum FluidSourceState {
+    public enum FluidSourceState {
         @SerializedName("source") RequireSource,
         @SerializedName("flowing") RequireFlowing,
         @SerializedName("any") DontCare
@@ -246,7 +266,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
         Down, Regular
     }
 
-    private record ResultBlock(Block block, int weight) {}
+    public record ResultBlock(Block block, int weight) {}
 
     private static class Serializer extends ForgeRegistryEntry<RecipeSerializer<?>> implements RecipeSerializer<FluidSpreadRecipe> {
         private Gson gson = new Gson();

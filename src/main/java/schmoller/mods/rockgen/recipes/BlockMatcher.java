@@ -5,7 +5,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
-record BlockMatcher(ResourceLocation location, boolean isTag, BlockMatchTest matcher) {
+public record BlockMatcher(ResourceLocation location, boolean isTag, BlockMatchTest matcher) {
     BlockMatcher(ResourceLocation location, Block block) {
         this(location, false, state -> state.is(block));
     }
