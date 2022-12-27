@@ -49,15 +49,15 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
     private final FluidSpreadDirection spreadDirection;
     private final List<ResultBlock> outputs;
     private final int maxOutputWeight;
-    private final Optional<Block> requireBelow;
+    private final Optional<BlockMatcher> requireBelow;
     private final Optional<TagKey<Fluid>> intoFluid;
-    private final Optional<Block> intoBlock;
+    private final Optional<BlockMatcher> intoBlock;
     private final Random random = new Random();
 
     private FluidSpreadRecipe(
         ResourceLocation id, TagKey<Fluid> fluid, FluidSpreadDirection spreadDirection, List<ResultBlock> outputs,
-        Optional<Block> requireBelow, Optional<TagKey<Fluid>> intoFluid, FluidSourceState fluidState,
-        Optional<Block> intoBlock
+        Optional<BlockMatcher> requireBelow, Optional<TagKey<Fluid>> intoFluid, FluidSourceState fluidState,
+        Optional<BlockMatcher> intoBlock
     ) {
         this.id = id;
         this.fluid = fluid;
@@ -136,7 +136,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
     public Optional<Block> tryMatch(LevelAccessor level, BlockPos position) {
         if (requireBelow.isPresent()) {
             var blockBelow = level.getBlockState(position.below());
-            if (!blockBelow.is(requireBelow.get())) {
+            if (!requireBelow.get().matches(blockBelow)) {
                 return Optional.empty();
             }
         }
@@ -179,7 +179,8 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
 
             return true;
         } else if (intoBlock.isPresent()) {
-            return level.getBlockState(position).is(intoBlock.get());
+            var state = level.getBlockState(position);
+            return intoBlock.get().matches(state);
         }
 
         return false;
@@ -278,7 +279,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
             }
 
             // Above block
-            Optional<Block> aboveBlock = Optional.empty();
+            Optional<BlockMatcher> aboveBlock = Optional.empty();
 
             if (aboveBlockProperty != null) {
                 if (!aboveBlockProperty.isString()) {
@@ -291,7 +292,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                     throw new IllegalStateException("Unknown block " + aboveBlockId);
                 }
 
-                aboveBlock = Optional.of(block);
+                aboveBlock = Optional.of(new BlockMatcher(aboveBlockId, block));
             }
 
             // Conditions
@@ -300,7 +301,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
             }
 
             Optional<TagKey<Fluid>> intoFluid = Optional.empty();
-            Optional<Block> intoBlock = Optional.empty();
+            Optional<BlockMatcher> intoBlock = Optional.empty();
 
             var intoFluidProperty = intoObject.getAsJsonPrimitive("fluid");
             var intoBlockProperty = intoObject.getAsJsonPrimitive("block");
@@ -324,7 +325,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                     throw new IllegalStateException("Unknown block " + intoBlockId);
                 }
 
-                intoBlock = Optional.of(block);
+                intoBlock = Optional.of(new BlockMatcher(intoBlockId, block));
             } else {
                 throw new IllegalStateException("Missing 'into.fluid' or 'into.block'");
             }
@@ -353,7 +354,8 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
             if (element.isJsonArray()) {
                 var outputArrayProperty = element.getAsJsonArray();
 
-                return StreamSupport.stream(outputArrayProperty.spliterator(), false)
+                return StreamSupport
+                    .stream(outputArrayProperty.spliterator(), false)
                     .map(this::decodeResultBlockFromJsonElement)
                     .collect(Collectors.toList());
             }
@@ -414,8 +416,8 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
         public FluidSpreadRecipe fromNetwork(@NotNull ResourceLocation id, FriendlyByteBuf input) {
             TagKey<Fluid> inputFluid;
             Optional<TagKey<Fluid>> intoFluid = Optional.empty();
-            Optional<Block> intoBlock = Optional.empty();
-            Optional<Block> aboveBlock = Optional.empty();
+            Optional<BlockMatcher> intoBlock = Optional.empty();
+            Optional<BlockMatcher> aboveBlock = Optional.empty();
 
             FluidSourceState intoFluidState;
 
@@ -446,7 +448,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                 if (block == null) {
                     throw new IllegalStateException("Unknown block " + blockId);
                 }
-                aboveBlock = Optional.of(block);
+                aboveBlock = Optional.of(new BlockMatcher(blockId, block));
             }
 
             var usesIntoFluid = input.readBoolean();
@@ -460,7 +462,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                 if (block == null) {
                     throw new IllegalStateException("Unknown block " + blockId);
                 }
-                intoBlock = Optional.of(block);
+                intoBlock = Optional.of(new BlockMatcher(blockId, block));
             }
 
             return new FluidSpreadRecipe(id,
@@ -490,7 +492,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
 
             output.writeBoolean(recipe.requireBelow.isPresent());
             if (recipe.requireBelow.isPresent()) {
-                output.writeResourceLocation(recipe.requireBelow.get().getRegistryName());
+                output.writeResourceLocation(recipe.requireBelow.get().location());
             }
 
             output.writeBoolean(recipe.intoFluid.isPresent());
@@ -498,7 +500,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                 output.writeResourceLocation(recipe.intoFluid.get().location());
             } else {
                 assert (recipe.intoBlock.isPresent());
-                output.writeResourceLocation(recipe.intoBlock.get().getRegistryName());
+                output.writeResourceLocation(recipe.intoBlock.get().location());
             }
         }
     }
