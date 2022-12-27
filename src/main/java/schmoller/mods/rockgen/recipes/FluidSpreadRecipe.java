@@ -30,6 +30,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.ForgeRegistryEntry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import schmoller.mods.rockgen.RockGenerationMod;
 
 import java.util.List;
 import java.util.Optional;
@@ -249,7 +250,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
         private Gson gson = new Gson();
 
         Serializer() {
-            setRegistryName(new ResourceLocation("rockgen", TypeId));
+            setRegistryName(new ResourceLocation(RockGenerationMod.Id, TypeId));
         }
 
         @Override

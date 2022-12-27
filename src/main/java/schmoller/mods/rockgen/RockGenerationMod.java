@@ -14,9 +14,10 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import schmoller.mods.rockgen.recipes.FluidSpreadRecipe;
 import schmoller.mods.rockgen.recipes.FluidSpreadRecipeCache;
 
-@Mod("rockgen")
+@Mod(RockGenerationMod.Id)
 public class RockGenerationMod {
     public static final FluidSpreadRecipeCache FluidSpreadRecipeCache = new FluidSpreadRecipeCache();
+    public static final String Id = "rockgen";
 
     public RockGenerationMod() {
         FMLJavaModLoadingContext.get()
