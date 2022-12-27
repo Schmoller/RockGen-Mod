@@ -22,3 +22,9 @@ description='Customises block generation such as cobble and basalt generation'
     versionRange="[1.18.2,1.19)"
     ordering="NONE"
     side="BOTH"
+[[dependencies.rockgen]]
+    modId="jei"
+    mandatory=false
+    versionRange="[10,)"
+    ordering="NONE"
+    side="CLIENT"
