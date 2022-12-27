@@ -15,13 +15,13 @@ import net.minecraftforge.registries.RegistryObject;
 import schmoller.mods.rockgen.recipes.FluidSpreadRecipe;
 import schmoller.mods.rockgen.recipes.FluidSpreadRecipeCache;
 
-@Mod("rockgen")
+@Mod(RockGenerationMod.Id)
 public class RockGenerationMod {
     public static final FluidSpreadRecipeCache FluidSpreadRecipeCache = new FluidSpreadRecipeCache();
+    public static final String Id = "rockgen";
 
     private static final DeferredRegister<RecipeType<?>> RecipeTypes = DeferredRegister.create(
-        Registry.RECIPE_TYPE_REGISTRY,
-        "rockgen"
+        Registry.RECIPE_TYPE_REGISTRY, Id
     );
     private static final RegistryObject<RecipeType<FluidSpreadRecipe>> FluidSpreadRecipeType = RecipeTypes.register(
         FluidSpreadRecipe.TypeId,
@@ -29,8 +29,7 @@ public class RockGenerationMod {
     );
 
     private static final DeferredRegister<RecipeSerializer<?>> RecipeSerializers = DeferredRegister.create(
-        Registry.RECIPE_SERIALIZER_REGISTRY,
-        "rockgen"
+        Registry.RECIPE_SERIALIZER_REGISTRY, Id
     );
     private static final RegistryObject<RecipeSerializer<FluidSpreadRecipe>> FluidSpreadRecipeSerializer = RecipeSerializers.register(
         FluidSpreadRecipe.TypeId,

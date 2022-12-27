@@ -18,6 +18,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.registries.ForgeRegistries;
+import schmoller.mods.rockgen.RockGenerationMod;
 import schmoller.mods.rockgen.recipes.BlockMatcher;
 import schmoller.mods.rockgen.recipes.FluidSpreadRecipe;
 import schmoller.mods.rockgen.util.GuiTextures;
@@ -27,7 +28,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 class FluidSpreadRecipeCategory implements IRecipeCategory<FluidSpreadRecipe> {
-    public static final RecipeType<FluidSpreadRecipe> Type = RecipeType.create("rockgen",
+    public static final RecipeType<FluidSpreadRecipe> Type = RecipeType.create(RockGenerationMod.Id,
         FluidSpreadRecipe.TypeId,
         FluidSpreadRecipe.class
     );

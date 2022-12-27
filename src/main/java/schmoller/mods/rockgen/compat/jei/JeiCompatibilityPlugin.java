@@ -7,6 +7,7 @@ import mezz.jei.api.registration.IRecipeRegistration;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
+import schmoller.mods.rockgen.RockGenerationMod;
 import schmoller.mods.rockgen.recipes.FluidSpreadRecipe;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -17,7 +18,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 public class JeiCompatibilityPlugin implements IModPlugin {
     @Override
     public ResourceLocation getPluginUid() {
-        return new ResourceLocation("rockgen", "jei_compat");
+        return new ResourceLocation(RockGenerationMod.Id, "jei_compat");
     }
 
     @Override
