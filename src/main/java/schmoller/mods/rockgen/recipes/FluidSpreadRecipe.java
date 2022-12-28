@@ -1,8 +1,6 @@
 package schmoller.mods.rockgen.recipes;
 
-import com.google.common.collect.Lists;
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.annotations.SerializedName;
@@ -14,7 +12,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
-import net.minecraft.util.Tuple;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -32,11 +29,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.Random;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpreadRecipe> {
     public static final Lazy<ItemStack> LazyLava = Lazy.of(() -> new ItemStack(Items.LAVA_BUCKET));
@@ -47,15 +40,13 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
     private final TagKey<Fluid> fluid;
     private final FluidSourceState fluidState;
     private final FluidSpreadDirection spreadDirection;
-    private final List<ResultBlock> outputs;
-    private final int maxOutputWeight;
+    private final RecipeOutputSelector outputs;
     private final Optional<BlockMatcher> requireBelow;
     private final Optional<TagKey<Fluid>> intoFluid;
     private final Optional<BlockMatcher> intoBlock;
-    private final Random random = new Random();
 
     private FluidSpreadRecipe(
-        ResourceLocation id, TagKey<Fluid> fluid, FluidSpreadDirection spreadDirection, List<ResultBlock> outputs,
+        ResourceLocation id, TagKey<Fluid> fluid, FluidSpreadDirection spreadDirection, RecipeOutputSelector outputs,
         Optional<BlockMatcher> requireBelow, Optional<TagKey<Fluid>> intoFluid, FluidSourceState fluidState,
         Optional<BlockMatcher> intoBlock
     ) {
@@ -67,19 +58,13 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
         this.requireBelow = requireBelow;
         this.intoFluid = intoFluid;
         this.intoBlock = intoBlock;
-
-        int outputWeight = 0;
-        for (var output : outputs) {
-            outputWeight += output.weight;
-        }
-        maxOutputWeight = outputWeight;
     }
 
     public TagKey<Fluid> getFluidToMatch() {
         return fluid;
     }
 
-    public List<ResultBlock> getOutputs() {
+    public RecipeOutputSelector getOutputs() {
         return outputs;
     }
 
@@ -120,7 +105,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
 
     @Override
     public @NotNull ItemStack getResultItem() {
-        return new ItemStack(outputs.get(0).block.asItem());
+        return new ItemStack(outputs.selectFirst().asItem());
     }
 
     @Override
@@ -177,13 +162,13 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                 BlockPos adjacent = position.relative(direction.getOpposite());
 
                 if (doesPositionMatchRequirements(level, adjacent)) {
-                    var outputBlock = chooseOutputBlock();
+                    var outputBlock = outputs.selectRandom();
                     return Optional.of(outputBlock);
                 }
             }
         } else {
             if (doesPositionMatchRequirements(level, position)) {
-                var outputBlock = chooseOutputBlock();
+                var outputBlock = outputs.selectRandom();
                 return Optional.of(outputBlock);
             }
         }
@@ -206,23 +191,6 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
         return false;
     }
 
-    private Block chooseOutputBlock() {
-        if (outputs.size() == 1) {
-            return outputs.get(0).block;
-        }
-
-        var offset = random.nextInt(maxOutputWeight);
-        var accumulated = 0;
-        for (var output : outputs) {
-            accumulated += output.weight;
-            if (offset < accumulated) {
-                return output.block;
-            }
-        }
-
-        // we should have received a result here
-        return outputs.get(0).block;
-    }
 
     @Override
     public String toString() {
@@ -265,8 +233,6 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
         Down, Regular
     }
 
-    public record ResultBlock(Block block, ResourceLocation location, int weight) {}
-
     public static class Serializer implements RecipeSerializer<FluidSpreadRecipe> {
         private Gson gson = new Gson();
 
@@ -280,7 +246,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
 
             // Output
             var resultProperty = document.get("result");
-            var outputs = decodeResults(resultProperty);
+            var outputs = RecipeOutputSelector.createFromJson(resultProperty, "result");
 
             var isFlowingDownProperty = document.getAsJsonPrimitive("flowing_down");
             var spreadDirection = FluidSpreadDirection.Regular;
@@ -359,75 +325,6 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
             return new BlockMatcher(blockId, block);
         }
 
-        private List<ResultBlock> decodeResults(JsonElement element) {
-            if (element == null) {
-                throw new IllegalArgumentException("'result' property is not string or array");
-            }
-
-            if (element.isJsonPrimitive()) {
-                var outputBlock = decodeBlockFromPrimitive(element.getAsJsonPrimitive(), "result");
-                return List.of(new ResultBlock(outputBlock.getA(), outputBlock.getB(), 1));
-            }
-
-            if (element.isJsonArray()) {
-                var outputArrayProperty = element.getAsJsonArray();
-
-                return StreamSupport.stream(outputArrayProperty.spliterator(), false)
-                    .map(this::decodeResultBlockFromJsonElement)
-                    .collect(Collectors.toList());
-            }
-
-            throw new IllegalArgumentException("'result' property is not a string or array");
-        }
-
-        private Tuple<Block, ResourceLocation> decodeBlockFromPrimitive(JsonPrimitive primitive, String path) {
-            if (primitive == null || !primitive.isString()) {
-                throw new IllegalArgumentException("'" + path + "' property is not a string");
-            }
-
-            var blockId = new ResourceLocation(primitive.getAsString());
-            var block = ForgeRegistries.BLOCKS.getValue(blockId);
-            if (block == null || block == Blocks.AIR) {
-                throw new IllegalStateException("Unknown block " + blockId);
-            }
-
-            return new Tuple<>(block, blockId);
-        }
-
-        private ResultBlock decodeResultBlockFromJsonElement(JsonElement element) {
-            if (element.isJsonObject()) {
-                return decodeResultBlockFromJsonObject(element.getAsJsonObject());
-            }
-
-            if (element.isJsonPrimitive()) {
-                var outputBlock = decodeBlockFromPrimitive(element.getAsJsonPrimitive(), "result");
-                return new ResultBlock(outputBlock.getA(), outputBlock.getB(), 1);
-            }
-
-            throw new IllegalArgumentException("Invalid result entry");
-        }
-
-        private ResultBlock decodeResultBlockFromJsonObject(JsonObject object) {
-            var blockProperty = object.getAsJsonPrimitive("block");
-            var outputBlock = decodeBlockFromPrimitive(blockProperty, "result.block");
-
-            var weightProperty = object.getAsJsonPrimitive("weight");
-            var weight = 1;
-            if (weightProperty != null) {
-                if (!weightProperty.isNumber()) {
-                    throw new IllegalArgumentException("'result.weight' property is not a number");
-                }
-
-                weight = weightProperty.getAsInt();
-
-                if (weight <= 0) {
-                    throw new IllegalArgumentException("'result.weight' property must be at least 1");
-                }
-            }
-
-            return new ResultBlock(outputBlock.getA(), outputBlock.getB(), weight);
-        }
-
         @Nullable
         @Override
         public FluidSpreadRecipe fromNetwork(@NotNull ResourceLocation id, FriendlyByteBuf input) {
@@ -442,19 +339,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
             inputFluid = FluidTags.create(inputFluidId);
             intoFluidState = input.readEnum(FluidSourceState.class);
 
-            var outputCount = input.readUnsignedShort();
-            List<ResultBlock> outputs = Lists.newArrayListWithExpectedSize(outputCount);
-
-            for (var index = 0; index < outputCount; ++index) {
-                var blockId = input.readResourceLocation();
-                var block = ForgeRegistries.BLOCKS.getValue(blockId);
-                if (block == null) {
-                    throw new IllegalStateException("Unknown block " + blockId);
-                }
-
-                var weight = input.readInt();
-                outputs.add(new ResultBlock(block, blockId, weight));
-            }
+            var outputs = RecipeOutputSelector.createFromBytes(input);
 
             var spreadDirection = input.readEnum(FluidSpreadDirection.class);
 
@@ -510,11 +395,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
             output.writeResourceLocation(recipe.fluid.location());
             output.writeEnum(recipe.fluidState);
 
-            output.writeShort(recipe.outputs.size());
-            for (var recipeOutput : recipe.outputs) {
-                output.writeResourceLocation(recipeOutput.location);
-                output.writeInt(recipeOutput.weight);
-            }
+            recipe.outputs.writeToByteBuf(output);
 
             output.writeEnum(recipe.spreadDirection);
 

@@ -206,13 +206,10 @@ class FluidSpreadRecipeCategory implements IRecipeCategory<FluidSpreadRecipe> {
         int x = startX;
         int y = 10;
 
-        var totalWeight = 0;
-        for (var resultBlock : recipe.getOutputs()) {
-            totalWeight = totalWeight + resultBlock.weight();
-        }
+        var outputs = recipe.getOutputs();
 
-        for (var output : recipe.getOutputs()) {
-            var chance = output.weight() / (float) totalWeight * 100;
+        for (var output : outputs.getOutputs()) {
+            var chance = output.weight() / (float) outputs.getMaxOutputWeight() * 100;
             builder
                 .addSlot(RecipeIngredientRole.OUTPUT, x, y)
                 .setBackground(SlotBackground, -1, -1)
