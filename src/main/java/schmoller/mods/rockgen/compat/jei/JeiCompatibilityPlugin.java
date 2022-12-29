@@ -8,6 +8,7 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import schmoller.mods.rockgen.RockGenerationMod;
+import schmoller.mods.rockgen.recipes.DripstoneDrainRecipe;
 import schmoller.mods.rockgen.recipes.FluidSpreadRecipe;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -26,6 +27,7 @@ public class JeiCompatibilityPlugin implements IModPlugin {
         var guiHelper = registration.getJeiHelpers().getGuiHelper();
 
         registration.addRecipeCategories(new FluidSpreadRecipeCategory(guiHelper));
+        registration.addRecipeCategories(new DripstoneDrainRecipeCategory(guiHelper));
     }
 
     @Override
@@ -33,5 +35,9 @@ public class JeiCompatibilityPlugin implements IModPlugin {
         assert Minecraft.getInstance().level != null;
         var recipeManager = Minecraft.getInstance().level.getRecipeManager();
         registration.addRecipes(FluidSpreadRecipeCategory.Type, recipeManager.getAllRecipesFor(FluidSpreadRecipe.Type));
+        registration.addRecipes(
+            DripstoneDrainRecipeCategory.Type,
+            recipeManager.getAllRecipesFor(DripstoneDrainRecipe.Type)
+        );
     }
 }

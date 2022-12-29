@@ -5,5 +5,10 @@
   "jei.fluidSpread.match.block": "The matching fluid type must touch this block type to form a block.",
   "jei.fluidSpread.match.blockBelow": "Must be placed below where the block will form",
   "jei.fluidSpread.consumed": "Consumed by interaction",
-  "jei.fluidSpread.chance": "Chance %s"
+  "jei.fluidSpread.chance": "Chance %s",
+  "jei.dripstoneDrain.title": "Dripstone Draining",
+  "jei.dripstoneDrain.root": "Any block which dripstone attaches to",
+  "jei.dripstoneDrain.ultraWarm": "Cannot be used in hot dimensions such as The Nether",
+  "jei.dripstoneDrain.probability": "%s%%",
+  "jei.dripstoneDrain.probability.description": "There is a %s%% chance that a random tick will convert the block"
 }
