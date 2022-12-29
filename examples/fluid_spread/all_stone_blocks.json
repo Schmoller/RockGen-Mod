@@ -1,0 +1,23 @@
+{
+  "type": "rockgen:fluid_spread",
+  "input": {
+    "fluid": "minecraft:lava",
+    "state": "any"
+  },
+  "above_block": "minecraft:bedrock",
+  "into": {
+    "fluid": "minecraft:water"
+  },
+  "result": [
+    {
+      "block": "minecraft:cobblestone",
+      "weight": 5
+    },
+    "minecraft:andesite",
+    "minecraft:cobbled_deepslate",
+    "minecraft:tuff",
+    "minecraft:granite",
+    "minecraft:diorite",
+    "minecraft:calcite"
+  ]
+}
