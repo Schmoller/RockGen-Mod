@@ -12,28 +12,37 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
+import schmoller.mods.rockgen.recipes.DripstoneDrainRecipe;
+import schmoller.mods.rockgen.recipes.DripstoneDrainRecipeCache;
 import schmoller.mods.rockgen.recipes.FluidSpreadRecipe;
 import schmoller.mods.rockgen.recipes.FluidSpreadRecipeCache;
 
 @Mod(RockGenerationMod.Id)
 public class RockGenerationMod {
     public static final FluidSpreadRecipeCache FluidSpreadRecipeCache = new FluidSpreadRecipeCache();
+    public static final DripstoneDrainRecipeCache DripstoneDrainRecipeCache = new DripstoneDrainRecipeCache();
     public static final String Id = "rockgen";
 
     private static final DeferredRegister<RecipeType<?>> RecipeTypes = DeferredRegister.create(
-        Registry.RECIPE_TYPE_REGISTRY, Id
+        Registry.RECIPE_TYPE_REGISTRY,
+        Id
     );
-    private static final RegistryObject<RecipeType<FluidSpreadRecipe>> FluidSpreadRecipeType = RecipeTypes.register(
-        FluidSpreadRecipe.TypeId,
+    private static final RegistryObject<RecipeType<FluidSpreadRecipe>> FluidSpreadRecipeType = RecipeTypes.register(FluidSpreadRecipe.TypeId,
         () -> FluidSpreadRecipe.Type
+    );
+    private static final RegistryObject<RecipeType<DripstoneDrainRecipe>> DripstoneDrainRecipeType = RecipeTypes.register(DripstoneDrainRecipe.TypeId,
+        () -> DripstoneDrainRecipe.Type
     );
 
     private static final DeferredRegister<RecipeSerializer<?>> RecipeSerializers = DeferredRegister.create(
-        Registry.RECIPE_SERIALIZER_REGISTRY, Id
+        Registry.RECIPE_SERIALIZER_REGISTRY,
+        Id
     );
-    private static final RegistryObject<RecipeSerializer<FluidSpreadRecipe>> FluidSpreadRecipeSerializer = RecipeSerializers.register(
-        FluidSpreadRecipe.TypeId,
+    private static final RegistryObject<RecipeSerializer<FluidSpreadRecipe>> FluidSpreadRecipeSerializer = RecipeSerializers.register(FluidSpreadRecipe.TypeId,
         () -> FluidSpreadRecipe.SerializerInstance
+    );
+    private static final RegistryObject<RecipeSerializer<DripstoneDrainRecipe>> DripstoneDrainRecipeSerializer = RecipeSerializers.register(DripstoneDrainRecipe.TypeId,
+        () -> DripstoneDrainRecipe.SerializerInstance
     );
 
     public RockGenerationMod() {
@@ -47,6 +56,8 @@ public class RockGenerationMod {
     public void onRecipesUpdated(RecipesUpdatedEvent event) {
         var spreadRecipes = event.getRecipeManager().getAllRecipesFor(FluidSpreadRecipe.Type);
         FluidSpreadRecipeCache.prepare(spreadRecipes);
+        var dripstoneRecipes = event.getRecipeManager().getAllRecipesFor(DripstoneDrainRecipe.Type);
+        DripstoneDrainRecipeCache.prepare(dripstoneRecipes);
     }
 
     @SubscribeEvent
@@ -56,5 +67,6 @@ public class RockGenerationMod {
         }
 
         FluidSpreadRecipeCache.invalidate();
+        DripstoneDrainRecipeCache.invalidate();
     }
 }
