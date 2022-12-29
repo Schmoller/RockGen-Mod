@@ -193,11 +193,7 @@ class FluidSpreadRecipeCategory implements IRecipeCategory<FluidSpreadRecipe> {
     }
 
     private void addMatchingBlocks(BlockMatcher matcher, IIngredientAcceptor<?> slot) {
-        ForgeRegistries.BLOCKS.forEach(block -> {
-            if (matcher.matches(block.defaultBlockState())) {
-                slot.addItemStack(new ItemStack(block.asItem()));
-            }
-        });
+        matcher.forEachMatchingRegisteredBlock(block -> slot.addItemStack(new ItemStack(block.asItem())));
     }
 
     private void addOutputSlots(IRecipeLayoutBuilder builder, FluidSpreadRecipe recipe) {

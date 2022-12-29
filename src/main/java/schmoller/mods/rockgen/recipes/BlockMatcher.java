@@ -68,6 +68,20 @@ public record BlockMatcher(ResourceLocation location, boolean isTag, BlockMatchT
         output.writeBoolean(isTag);
     }
 
+    /**
+     * NOTE: This only matches against the default block state. This is ok for as long as the BlockMatcher only
+     * supports id and tag based matching. If we add other forms of matching, we won't be able to use this
+     *
+     * @param callback Called for each registered block that matches
+     */
+    public void forEachMatchingRegisteredBlock(Consumer<Block> callback) {
+        ForgeRegistries.BLOCKS.forEach(block -> {
+            if (matches(block.defaultBlockState())) {
+                callback.accept(block);
+            }
+        });
+    }
+
     public boolean matches(BlockState state) {
         return matcher.test(state);
     }
