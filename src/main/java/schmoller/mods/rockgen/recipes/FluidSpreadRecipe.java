@@ -2,14 +2,12 @@ package schmoller.mods.rockgen.recipes;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import com.google.gson.annotations.SerializedName;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.Container;
@@ -21,11 +19,9 @@ import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.common.util.Lazy;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -234,7 +230,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
     }
 
     public static class Serializer implements RecipeSerializer<FluidSpreadRecipe> {
-        private Gson gson = new Gson();
+        private final Gson gson = new Gson();
 
         @Override
         public @NotNull FluidSpreadRecipe fromJson(@NotNull ResourceLocation id, JsonObject document) {
@@ -264,7 +260,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
             Optional<BlockMatcher> aboveBlock = Optional.empty();
 
             if (aboveBlockProperty != null) {
-                aboveBlock = Optional.of(decodeBlockMatcherFromJson(aboveBlockProperty, "above_block"));
+                aboveBlock = Optional.of(BlockMatcher.createFromJson(aboveBlockProperty, "above_block"));
             }
 
             // Conditions
@@ -287,7 +283,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                 var fluid = FluidTags.create(intoFluidId);
                 intoFluid = Optional.of(fluid);
             } else if (intoBlockProperty != null) {
-                intoBlock = Optional.of(decodeBlockMatcherFromJson(intoBlockProperty, "into.block"));
+                intoBlock = Optional.of(BlockMatcher.createFromJson(intoBlockProperty, "into.block"));
             } else {
                 throw new IllegalStateException("Missing 'into.fluid' or 'into.block'");
             }
@@ -301,28 +297,6 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                 input.state,
                 intoBlock
             );
-        }
-
-        private BlockMatcher decodeBlockMatcherFromJson(JsonPrimitive element, String path) {
-            if (!element.isString()) {
-                throw new IllegalArgumentException("'" + path + "' property is not a string");
-            }
-
-            var blockIdOrTag = element.getAsString();
-
-            if (blockIdOrTag.startsWith("#")) {
-                // This is a block tag
-                return new BlockMatcher(BlockTags.create(new ResourceLocation(blockIdOrTag.substring(1))));
-            }
-
-            // just a regular block id
-            var blockId = new ResourceLocation(blockIdOrTag);
-            var block = ForgeRegistries.BLOCKS.getValue(blockId);
-            if (block == null || block == Blocks.AIR) {
-                throw new IllegalStateException("Unknown block " + blockId);
-            }
-
-            return new BlockMatcher(blockId, block);
         }
 
         @Nullable
@@ -345,7 +319,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
 
             var hasAboveBlock = input.readBoolean();
             if (hasAboveBlock) {
-                aboveBlock = Optional.of(decodeBlockMatcherFromNetwork(input));
+                aboveBlock = Optional.of(BlockMatcher.createFromByteBuf(input));
             }
 
             var usesIntoFluid = input.readBoolean();
@@ -354,7 +328,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                 var fluid = FluidTags.create(fluidId);
                 intoFluid = Optional.of(fluid);
             } else {
-                intoBlock = Optional.of(decodeBlockMatcherFromNetwork(input));
+                intoBlock = Optional.of(BlockMatcher.createFromByteBuf(input));
             }
 
             return new FluidSpreadRecipe(id,
@@ -366,27 +340,6 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                 intoFluidState,
                 intoBlock
             );
-        }
-
-        private BlockMatcher decodeBlockMatcherFromNetwork(FriendlyByteBuf input) {
-            var idOrTag = input.readResourceLocation();
-            var isTag = input.readBoolean();
-
-            if (isTag) {
-                return new BlockMatcher(BlockTags.create(idOrTag));
-            }
-
-            var block = ForgeRegistries.BLOCKS.getValue(idOrTag);
-            if (block == null) {
-                throw new IllegalStateException("Unknown block " + idOrTag);
-            }
-
-            return new BlockMatcher(idOrTag, block);
-        }
-
-        private void encodeBlockMatcherToNetwork(BlockMatcher matcher, FriendlyByteBuf output) {
-            output.writeResourceLocation(matcher.location());
-            output.writeBoolean(matcher.isTag());
         }
 
         @Override
@@ -401,7 +354,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
 
             output.writeBoolean(recipe.requireBelow.isPresent());
             if (recipe.requireBelow.isPresent()) {
-                encodeBlockMatcherToNetwork(recipe.requireBelow.get(), output);
+                recipe.requireBelow.get().writeToByteBuf(output);
             }
 
             output.writeBoolean(recipe.intoFluid.isPresent());
@@ -409,7 +362,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                 output.writeResourceLocation(recipe.intoFluid.get().location());
             } else {
                 assert (recipe.intoBlock.isPresent());
-                encodeBlockMatcherToNetwork(recipe.intoBlock.get(), output);
+                recipe.intoBlock.get().writeToByteBuf(output);
             }
         }
     }
