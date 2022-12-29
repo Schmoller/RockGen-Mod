@@ -1,0 +1,11 @@
+{
+  "type": "rockgen:fluid_spread",
+  "input": {
+    "fluid": "minecraft:water",
+    "state": "flowing"
+  },
+  "into": {
+    "block": "minecraft:blue_ice"
+  },
+  "result": "minecraft:ice"
+}

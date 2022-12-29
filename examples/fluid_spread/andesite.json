@@ -1,0 +1,12 @@
+{
+  "type": "rockgen:fluid_spread",
+  "input": {
+    "fluid": "minecraft:lava",
+    "state": "any"
+  },
+  "above_block": "minecraft:bedrock",
+  "into": {
+    "fluid": "minecraft:water"
+  },
+  "result": "minecraft:andesite"
+}
