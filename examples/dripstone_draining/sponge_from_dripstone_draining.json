@@ -1,0 +1,6 @@
+{
+  "type": "rockgen:dripstone_draining",
+  "block_to_drain": "minecraft:wet_sponge",
+  "probability": 17.35,
+  "result": "minecraft:sponge"
+}

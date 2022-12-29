@@ -1,0 +1,7 @@
+{
+  "type": "rockgen:dripstone_draining",
+  "block_to_drain": "minecraft:honey_block",
+  "fluid_particles": "minecraft:dripping_honey",
+  "probability": 5,
+  "result": "minecraft:honeycomb_block"
+}

@@ -1,0 +1,20 @@
+{
+  "type": "rockgen:dripstone_draining",
+  "block_to_drain": "minecraft:copper_block",
+  "fluid_particles": "minecraft:ash",
+  "probability": 8,
+  "result": [
+    {
+      "block": "minecraft:exposed_copper",
+      "weight": 90
+    },
+    {
+      "block": "minecraft:weathered_copper",
+      "weight": 8
+    },
+    {
+      "block": "minecraft:oxidized_copper",
+      "weight": 2
+    }
+  ]
+}
