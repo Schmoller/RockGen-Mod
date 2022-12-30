@@ -1,7 +1,7 @@
 # RockGen
 
-RockGen is a Minecraft Forge mod for Minecraft 1.18.2 (so far). It provides recipes for controlling cobblestone
-generation and other types of fluid interactions which create blocks.
+RockGen is a Minecraft Forge mod for Minecraft 1.18.2. It provides recipes for controlling cobblestone generation and
+other types of fluid interactions which create blocks.
 
 By default, all standard vanilla interactions are preserved as recipes.
 
@@ -17,5 +17,5 @@ This mod is primarily intended for modpack creators.
 
 ## Documentation
 
-See the [Recipe Guide](https://github.com/Schmoller/RockGen-Mod/wiki/Recipe-guide) for information on how to create
-recipes.
+See the [Fluid interaction recipe guide](https://github.com/Schmoller/RockGen-Mod/wiki/Fluid-interaction-recipe-guide)
+for information on how to create recipes.
