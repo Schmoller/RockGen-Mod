@@ -34,14 +34,18 @@ public abstract class FlowingFluidMixin extends Fluid {
             }
 
             if (p_76222_.getBlock() instanceof LiquidBlock) {
-                level.setBlock(flowingToPosition,
-                    net.minecraftforge.event.ForgeEventFactory.fireFluidPlaceBlockEvent(level,
-                        flowingToPosition,
-                        flowingToPosition,
-                        blockToSet.get().defaultBlockState()
-                    ),
-                    3
+                var initialState = blockToSet.get().defaultBlockState();
+                var newState = net.minecraftforge.event.ForgeEventFactory.fireFluidPlaceBlockEvent(level,
+                    flowingToPosition,
+                    flowingToPosition,
+                    initialState
                 );
+
+                if (!recipe.getAllowOverriding()) {
+                    newState = initialState;
+                }
+
+                level.setBlock(flowingToPosition, newState, 3);
             }
 
             this.fizz(level, flowingToPosition);

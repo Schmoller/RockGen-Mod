@@ -24,13 +24,19 @@ public abstract class LiquidBlockMixin {
             var blockToSet = recipe.tryMatch(level, flowingToPosition);
             if (blockToSet.isPresent()) {
                 var block = blockToSet.get();
-                level.setBlockAndUpdate(flowingToPosition,
-                    net.minecraftforge.event.ForgeEventFactory.fireFluidPlaceBlockEvent(level,
-                        flowingToPosition,
-                        flowingToPosition,
-                        block.defaultBlockState()
-                    )
+
+                var initialState = block.defaultBlockState();
+                var newState = net.minecraftforge.event.ForgeEventFactory.fireFluidPlaceBlockEvent(level,
+                    flowingToPosition,
+                    flowingToPosition,
+                    initialState
                 );
+
+                if (!recipe.getAllowOverriding()) {
+                    newState = initialState;
+                }
+
+                level.setBlockAndUpdate(flowingToPosition, newState);
                 this.fizz(level, flowingToPosition);
                 return false;
             }

@@ -53,12 +53,13 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
     private final Optional<BlockMatcher> requireBelow;
     private final Optional<TagKey<Fluid>> intoFluid;
     private final Optional<BlockMatcher> intoBlock;
+    private final boolean allowOverriding;
     private final Random random = new Random();
 
     private FluidSpreadRecipe(
         ResourceLocation id, TagKey<Fluid> fluid, FluidSpreadDirection spreadDirection, List<ResultBlock> outputs,
         Optional<BlockMatcher> requireBelow, Optional<TagKey<Fluid>> intoFluid, FluidSourceState fluidState,
-        Optional<BlockMatcher> intoBlock
+        Optional<BlockMatcher> intoBlock, boolean allowOverriding
     ) {
         this.id = id;
         this.fluid = fluid;
@@ -68,6 +69,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
         this.requireBelow = requireBelow;
         this.intoFluid = intoFluid;
         this.intoBlock = intoBlock;
+        this.allowOverriding = allowOverriding;
 
         int outputWeight = 0;
         for (var output : outputs) {
@@ -103,6 +105,8 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
     public FluidSourceState getFluidState() {
         return fluidState;
     }
+
+    public boolean getAllowOverriding() { return allowOverriding; }
 
     @Override
     public boolean matches(@NotNull Container inventory, @NotNull Level world) {
@@ -227,7 +231,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
 
     @Override
     public String toString() {
-        return "FluidSpreadRecipe{" + "id=" + id + ", fluid=" + fluid + ", outputs=" + outputs + ", requireBelow=" + requireBelow + ", intoFluid=" + intoFluid + ", fluidState=" + fluidState + ", intoBlock=" + intoBlock + '}';
+        return "FluidSpreadRecipe{" + "id=" + id + ", fluid=" + fluid + ", fluidState=" + fluidState + ", spreadDirection=" + spreadDirection + ", outputs=" + outputs + ", requireBelow=" + requireBelow + ", intoFluid=" + intoFluid + ", intoBlock=" + intoBlock + ", allowOverriding=" + allowOverriding + '}';
     }
 
     /**
@@ -331,6 +335,16 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                 throw new IllegalStateException("Missing 'into.fluid' or 'into.block'");
             }
 
+            boolean allowOverriding = true;
+            var allowOverrideProperty = document.getAsJsonPrimitive("allow_override");
+            if (allowOverrideProperty != null) {
+                if (!allowOverrideProperty.isBoolean()) {
+                    throw new IllegalStateException("'allow_override' must be a boolean");
+                }
+
+                allowOverriding = allowOverrideProperty.getAsBoolean();
+            }
+
             return new FluidSpreadRecipe(id,
                 input.fluidTag(),
                 spreadDirection,
@@ -338,7 +352,8 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                 aboveBlock,
                 intoFluid,
                 input.state,
-                intoBlock
+                intoBlock,
+                allowOverriding
             );
         }
 
@@ -478,6 +493,8 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                 intoBlock = Optional.of(decodeBlockMatcherFromNetwork(input));
             }
 
+            boolean allowOverriding = input.readBoolean();
+
             return new FluidSpreadRecipe(id,
                 inputFluid,
                 spreadDirection,
@@ -485,7 +502,8 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                 aboveBlock,
                 intoFluid,
                 intoFluidState,
-                intoBlock
+                intoBlock,
+                allowOverriding
             );
         }
 
@@ -536,6 +554,8 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                 assert (recipe.intoBlock.isPresent());
                 encodeBlockMatcherToNetwork(recipe.intoBlock.get(), output);
             }
+
+            output.writeBoolean(recipe.allowOverriding);
         }
     }
 
