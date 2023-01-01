@@ -1,10 +1,20 @@
 package schmoller.mods.rockgen;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.client.event.RecipesUpdatedEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.event.OnDatapackSyncEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -12,15 +22,13 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
+import schmoller.mods.rockgen.api.CurrentPlatform;
+import schmoller.mods.rockgen.api.PlatformHandlers;
 import schmoller.mods.rockgen.recipes.DripstoneDrainRecipe;
-import schmoller.mods.rockgen.recipes.DripstoneDrainRecipeCache;
 import schmoller.mods.rockgen.recipes.FluidSpreadRecipe;
-import schmoller.mods.rockgen.recipes.FluidSpreadRecipeCache;
 
 @Mod(RockGenerationMod.Id)
-public class RockGenerationMod {
-    public static final FluidSpreadRecipeCache FluidSpreadRecipeCache = new FluidSpreadRecipeCache();
-    public static final DripstoneDrainRecipeCache DripstoneDrainRecipeCache = new DripstoneDrainRecipeCache();
+public class RockGenerationMod implements PlatformHandlers {
     public static final String Id = "rockgen";
 
     private static final DeferredRegister<RecipeType<?>> RecipeTypes = DeferredRegister.create(
@@ -46,6 +54,7 @@ public class RockGenerationMod {
     );
 
     public RockGenerationMod() {
+        CurrentPlatform.getInstance().setPlatformHandlers(this);
         MinecraftForge.EVENT_BUS.register(this);
         RecipeTypes.register(FMLJavaModLoadingContext.get().getModEventBus());
         RecipeSerializers.register(FMLJavaModLoadingContext.get().getModEventBus());
@@ -55,9 +64,9 @@ public class RockGenerationMod {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onRecipesUpdated(RecipesUpdatedEvent event) {
         var spreadRecipes = event.getRecipeManager().getAllRecipesFor(FluidSpreadRecipe.Type);
-        FluidSpreadRecipeCache.prepare(spreadRecipes);
+        CurrentPlatform.getInstance().getFluidSpreadRecipeCache().prepare(spreadRecipes);
         var dripstoneRecipes = event.getRecipeManager().getAllRecipesFor(DripstoneDrainRecipe.Type);
-        DripstoneDrainRecipeCache.prepare(dripstoneRecipes);
+        CurrentPlatform.getInstance().getDripstoneDrainRecipeCache().prepare(dripstoneRecipes);
     }
 
     @SubscribeEvent
@@ -66,7 +75,32 @@ public class RockGenerationMod {
             return;
         }
 
-        FluidSpreadRecipeCache.invalidate();
-        DripstoneDrainRecipeCache.invalidate();
+        CurrentPlatform.getInstance().getFluidSpreadRecipeCache().invalidate();
+        CurrentPlatform.getInstance().getDripstoneDrainRecipeCache().invalidate();
+    }
+
+    @Override
+    public BlockState notifyAndGetFluidInteractionBlock(
+        LevelAccessor level, BlockPos position, BlockState state
+    ) {
+        return ForgeEventFactory.fireFluidPlaceBlockEvent(level,
+            position,
+            position,
+            state
+        );
+    }
+
+    @Override
+    public TagKey<Block> getOrCreateBlockTag(
+        ResourceLocation location
+    ) {
+        return BlockTags.create(location);
+    }
+
+    @Override
+    public TagKey<Fluid> getOrCreateFluidTag(
+        ResourceLocation location
+    ) {
+        return FluidTags.create(location);
     }
 }

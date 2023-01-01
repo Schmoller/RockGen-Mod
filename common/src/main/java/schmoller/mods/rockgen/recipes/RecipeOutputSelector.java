@@ -3,10 +3,10 @@ package schmoller.mods.rockgen.recipes;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.minecraft.core.Registry;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.registries.ForgeRegistries;
 import schmoller.mods.rockgen.util.SerializationUtil;
 
 import java.util.List;
@@ -39,7 +39,7 @@ public final class RecipeOutputSelector {
         List<ResultBlock> outputs;
         if (element.isJsonPrimitive()) {
             var outputBlock = SerializationUtil.decodeBlockFromPrimitive(element.getAsJsonPrimitive(), path);
-            outputs = List.of(new RecipeOutputSelector.ResultBlock(outputBlock.getA(), outputBlock.getB(), 1));
+            outputs = List.of(new ResultBlock(outputBlock.getA(), outputBlock.getB(), 1));
         } else if (element.isJsonArray()) {
             var outputArrayProperty = element.getAsJsonArray();
 
@@ -60,13 +60,13 @@ public final class RecipeOutputSelector {
 
         for (var index = 0; index < outputCount; ++index) {
             var blockId = input.readResourceLocation();
-            var block = ForgeRegistries.BLOCKS.getValue(blockId);
-            if (block == null) {
+            var block = Registry.BLOCK.getOptional(blockId);
+            if (block.isEmpty()) {
                 throw new IllegalStateException("Unknown block " + blockId);
             }
 
             var weight = input.readInt();
-            outputs.add(new ResultBlock(block, blockId, weight));
+            outputs.add(new ResultBlock(block.get(), blockId, weight));
         }
 
         return new RecipeOutputSelector(outputs);

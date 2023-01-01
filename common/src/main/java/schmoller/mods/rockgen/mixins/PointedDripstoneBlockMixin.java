@@ -24,7 +24,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
-import schmoller.mods.rockgen.RockGenerationMod;
+import schmoller.mods.rockgen.api.CurrentPlatform;
 
 import javax.annotation.Nullable;
 import java.util.Optional;
@@ -44,7 +44,7 @@ public class PointedDripstoneBlockMixin {
         final float LavaDripProbability = 0.05859375F;
         final float WaterDripProbability = 0.17578125F;
 
-        if (randomNumber > RockGenerationMod.DripstoneDrainRecipeCache.getMaxProbability() && randomNumber > LavaDripProbability && randomNumber > WaterDripProbability) {
+        if (randomNumber > CurrentPlatform.getInstance().getDripstoneDrainRecipeCache().getMaxProbability() && randomNumber > LavaDripProbability && randomNumber > WaterDripProbability) {
             return;
         }
 
@@ -61,7 +61,7 @@ public class PointedDripstoneBlockMixin {
         // Some recipes (and standard cauldron filling) requires fluid info
         var drainFluid = level.getFluidState(drainBlock);
 
-        for (var recipe : RockGenerationMod.DripstoneDrainRecipeCache.get(drainBlockState, level)) {
+        for (var recipe : CurrentPlatform.getInstance().getDripstoneDrainRecipeCache().get(drainBlockState, level)) {
             var blockToSet = recipe.tryMatch(drainBlockState, level, randomNumber);
             if (blockToSet.isEmpty()) {
                 continue;
@@ -164,7 +164,7 @@ public class PointedDripstoneBlockMixin {
             // Try to get the particle from a matching recipe
             var drainBlockState = level.getBlockState(drainBlock);
 
-            for (var recipe : RockGenerationMod.DripstoneDrainRecipeCache.get(drainBlockState, level)) {
+            for (var recipe : CurrentPlatform.getInstance().getDripstoneDrainRecipeCache().get(drainBlockState, level)) {
                 if (!recipe.doesMatch(drainBlockState, level)) {
                     continue;
                 }

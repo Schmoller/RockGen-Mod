@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import schmoller.mods.rockgen.RockGenerationMod;
+import schmoller.mods.rockgen.api.CurrentPlatform;
 
 @Mixin(FlowingFluid.class)
 public abstract class FlowingFluidMixin extends Fluid {
@@ -26,7 +26,10 @@ public abstract class FlowingFluidMixin extends Fluid {
             return;
         }
 
-        for (var recipe : RockGenerationMod.FluidSpreadRecipeCache.getFalling((FlowingFluid) (Object) this, level)) {
+        for (var recipe : CurrentPlatform
+            .getInstance()
+            .getFluidSpreadRecipeCache()
+            .getFalling((FlowingFluid) (Object) this, level)) {
             var blockToSet = recipe.tryMatch(level, flowingToPosition);
 
             if (blockToSet.isEmpty()) {
@@ -34,14 +37,11 @@ public abstract class FlowingFluidMixin extends Fluid {
             }
 
             if (p_76222_.getBlock() instanceof LiquidBlock) {
-                level.setBlock(flowingToPosition,
-                    net.minecraftforge.event.ForgeEventFactory.fireFluidPlaceBlockEvent(level,
-                        flowingToPosition,
-                        flowingToPosition,
-                        blockToSet.get().defaultBlockState()
-                    ),
-                    3
-                );
+                var newState = CurrentPlatform
+                    .getInstance()
+                    .getPlatformHandlers()
+                    .notifyAndGetFluidInteractionBlock(level, flowingToPosition, blockToSet.get().defaultBlockState());
+                level.setBlock(flowingToPosition, newState, 3);
             }
 
             this.fizz(level, flowingToPosition);

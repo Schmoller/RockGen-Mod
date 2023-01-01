@@ -21,14 +21,13 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.common.util.Lazy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import schmoller.mods.rockgen.api.CurrentPlatform;
 
 import java.util.Optional;
 
 public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpreadRecipe> {
-    public static final Lazy<ItemStack> LazyLava = Lazy.of(() -> new ItemStack(Items.LAVA_BUCKET));
     public static final String TypeId = "fluid_spread";
     public static final RecipeType<FluidSpreadRecipe> Type = new Type();
     public static final Serializer SerializerInstance = new Serializer();
@@ -116,7 +115,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
 
     @Override
     public @NotNull ItemStack getToastSymbol() {
-        return LazyLava.get();
+        return new ItemStack(Items.LAVA_BUCKET);
     }
 
     @Override
@@ -280,7 +279,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
                 }
 
                 var intoFluidId = new ResourceLocation(intoFluidProperty.getAsString());
-                var fluid = FluidTags.create(intoFluidId);
+                var fluid = CurrentPlatform.getInstance().getPlatformHandlers().getOrCreateFluidTag(intoFluidId);
                 intoFluid = Optional.of(fluid);
             } else if (intoBlockProperty != null) {
                 intoBlock = Optional.of(BlockMatcher.createFromJson(intoBlockProperty, "into.block"));
@@ -310,7 +309,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
             FluidSourceState intoFluidState;
 
             var inputFluidId = input.readResourceLocation();
-            inputFluid = FluidTags.create(inputFluidId);
+            inputFluid = CurrentPlatform.getInstance().getPlatformHandlers().getOrCreateFluidTag(inputFluidId);
             intoFluidState = input.readEnum(FluidSourceState.class);
 
             var outputs = RecipeOutputSelector.createFromBytes(input);
@@ -325,7 +324,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
             var usesIntoFluid = input.readBoolean();
             if (usesIntoFluid) {
                 var fluidId = input.readResourceLocation();
-                var fluid = FluidTags.create(fluidId);
+                var fluid = CurrentPlatform.getInstance().getPlatformHandlers().getOrCreateFluidTag(fluidId);
                 intoFluid = Optional.of(fluid);
             } else {
                 intoBlock = Optional.of(BlockMatcher.createFromByteBuf(input));
@@ -379,7 +378,7 @@ public class FluidSpreadRecipe implements Recipe<Container>, Comparable<FluidSpr
         public FluidSourceState state;
 
         public TagKey<Fluid> fluidTag() {
-            return FluidTags.create(new ResourceLocation(fluid));
+            return CurrentPlatform.getInstance().getPlatformHandlers().getOrCreateFluidTag(new ResourceLocation(fluid));
         }
     }
 }

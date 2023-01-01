@@ -1,11 +1,11 @@
 package schmoller.mods.rockgen.util;
 
 import com.google.gson.JsonPrimitive;
+import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraftforge.registries.ForgeRegistries;
 
 public final class SerializationUtil {
     private SerializationUtil() {
@@ -17,11 +17,11 @@ public final class SerializationUtil {
         }
 
         var blockId = new ResourceLocation(primitive.getAsString());
-        var block = ForgeRegistries.BLOCKS.getValue(blockId);
-        if (block == null || block == Blocks.AIR) {
+        var block = Registry.BLOCK.getOptional(blockId);
+        if (block.isEmpty() || block.get() == Blocks.AIR) {
             throw new IllegalStateException("Unknown block " + blockId);
         }
 
-        return new Tuple<>(block, blockId);
+        return new Tuple<>(block.get(), blockId);
     }
 }
