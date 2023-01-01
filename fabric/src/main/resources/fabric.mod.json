@@ -1,25 +1,23 @@
 {
   "schemaVersion": 1,
-  "id": "modid",
+  "id": "rockgen",
   "version": "${version}",
 
-  "name": "Example Mod",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "name": "Rock Generator",
+  "description": "Customises block generation such as cobble and basalt generation",
   "authors": [
-    "Me!"
+    "Schmoller"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://github.com/Schmoller/RockGen-Mod",
+    "sources": "https://github.com/Schmoller/RockGen-Mod"
   },
-
-  "license": "CC0-1.0",
-  "icon": "assets/modid/icon.png",
+  "license": "MIT",
 
   "environment": "*",
   "entrypoints": {
     "main": [
-      "net.fabricmc.example.ExampleMod"
+      "schmoller.mods.rockgen.RockGenerationMod"
     ]
   },
   "mixins": [
@@ -32,6 +30,6 @@
     "java": ">=17"
   },
   "suggests": {
-    "another-mod": "*"
+    "jei": ">=11"
   }
 }

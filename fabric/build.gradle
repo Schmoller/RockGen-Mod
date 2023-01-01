@@ -41,6 +41,35 @@ processResources {
     }
 }
 
+loom {
+    runs {
+        client {
+            client()
+
+            source = sourceSets.main
+            environment = "client"
+        }
+
+        server {
+            server()
+        }
+    }
+
+    runConfigs.configureEach {
+        ideConfigGenerated = true
+    }
+
+    mixin {
+        defaultRefmapName = "rockgen.refmap.json"
+    }
+
+    mods {
+        rockgen {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
 tasks.withType(JavaCompile).configureEach {
     // Minecraft 1.18 (1.18-pre2) upwards uses Java 17.
     it.options.release = 17
@@ -57,21 +86,56 @@ jar {
     from("LICENSE") {
         rename { "${it}_${project.archivesBaseName}"}
     }
+
+    manifest {
+        attributes([
+                "Specification-Title"     : "rockgen",
+                "Specification-Vendor"    : "schmollermods",
+                "Specification-Version"   : "1", // We are version 1 of ourselves
+                "Implementation-Title"    : project.name,
+                "Implementation-Version"  : project.jar.archiveVersion,
+                "Implementation-Vendor"   : "schmollermods",
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+
+    }
 }
 
-// configure the maven publication
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            from components.java
+            artifact jar
+
+            groupId = project.group
+            version = project.version
+            artifactId = project.archivesBaseName
+
+            pom {
+                name = project.archivesBaseName
+                description = "Minecraft mod for controllig cobblestone (and other) generation."
+                url = 'https://github.com/Schmoller/RockGen-Mod'
+                scm {
+                    url = 'https://github.com/Schmoller/RockGen-Mod'
+                    connection = 'scm:git:git@github.com:Schmoller/RockGen-Mod.git'
+                    developerConnection = 'scm:git:git@github.com:Schmoller/RockGen-Mod.git'
+                }
+                issueManagement {
+                    system = 'github'
+                    url = 'https://github.com/Schmoller/RockGen-Mod/issues'
+                }
+
+                developers {
+                    developer {
+                        id = 'Schmoller'
+                        name = 'Steven Schmoll'
+                    }
+                }
+            }
         }
     }
-
-    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
     repositories {
-        // Add repositories to publish to here.
-        // Notice: This block does NOT have the same function as the block in the top level.
-        // The repositories here will be used for publishing your artifact, not for
-        // retrieving dependencies.
+        maven {
+            url "file://${project.projectDir}/build/artifacts"
+        }
     }
 }
