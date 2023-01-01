@@ -1,0 +1,11 @@
+{
+  "type": "rockgen:fluid_spread",
+  "input": {
+    "fluid": "minecraft:lava",
+    "state": "source"
+  },
+  "into": {
+    "fluid": "minecraft:water"
+  },
+  "result": "minecraft:obsidian"
+}

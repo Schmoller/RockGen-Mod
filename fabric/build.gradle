@@ -19,6 +19,8 @@ repositories {
 }
 
 dependencies {
+    implementation project(':common')
+
     // To change the versions see the gradle.properties file
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings loom.officialMojangMappings()
@@ -66,6 +68,7 @@ loom {
     mods {
         rockgen {
             sourceSet sourceSets.main
+            sourceSet project(':common').sourceSets.main
         }
     }
 }

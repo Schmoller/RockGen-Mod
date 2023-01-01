@@ -1,0 +1,8 @@
+{
+  "type": "rockgen:dripstone_draining",
+  "block_to_drain": "minecraft:mud",
+  "ultra_warm": false,
+  "fluid_particles": "dripping_dripstone_water",
+  "probability": 17.578125,
+  "result": "minecraft:clay"
+}

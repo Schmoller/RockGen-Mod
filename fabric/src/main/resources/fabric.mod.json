@@ -21,6 +21,7 @@
     ]
   },
   "mixins": [
+    "mixins.rockgen.json"
   ],
 
   "depends": {
