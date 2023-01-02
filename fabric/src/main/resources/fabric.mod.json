@@ -18,6 +18,9 @@
   "entrypoints": {
     "main": [
       "schmoller.mods.rockgen.RockGenerationMod"
+    ],
+    "jei_mod_plugin": [
+      "schmoller.mods.rockgen.compat.jei.JeiCompatibilityPlugin"
     ]
   },
   "mixins": [
